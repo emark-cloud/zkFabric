@@ -473,21 +473,6 @@ A gated RWA vault (ERC-4626) that accepts zkFabric proofs for deposit access. Us
 
 ---
 
-## Why This Beats the Competition
-
-| Dimension | hsk-zkid (Chronique) | zkgate (JMadhan1) | aria-protocol (HuydZzz) | **zkFabric (Ours)** |
-|-----------|---------------------|-------------------|------------------------|---------------------|
-| **Real ZK proofs** | ECDSA signatures only ("ZK-inspired") | Circom circuits exist but "simulated for demo" | Circom files present, 2 commits total | Groth16 circuits with on-chain verification, client-side proving |
-| **Uses HashKey KYC SBT** | No — builds parallel system | No — builds parallel system | No — builds parallel system | Yes — wraps the chain's native KycSBT contract directly |
-| **Selective disclosure** | No — binary KYC check | No — binary KYC check | No — binary KYC check | Yes — per-attribute predicates via circuit |
-| **Multiple credential sources** | No — one source | No — one source | Mentions "AI Risk Engine" but single flow | Yes — KYC SBT + zkTLS + on-chain adapters |
-| **Developer SDK** | No SDK | `IZKGate.sol` interface | No SDK | Full npm SDK: `@zkfabric/sdk` |
-| **Platform vs point solution** | Point: KYC gate for DeFi | Point: KYC gate for DeFi | Point: institutional vault | Platform: any dApp, any claim, one interface |
-| **Unlinkable proofs** | No — wallet is linked | Nullifiers exist | No linkability protection | Poseidon nullifiers scoped per-dApp |
-| **Proof of unique human** | No | No | No | Yes — Merkle membership proof |
-
----
-
 ## Project Structure
 
 ```
