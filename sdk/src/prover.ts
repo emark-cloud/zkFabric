@@ -128,12 +128,13 @@ export async function verifyProof(
     throw new Error("Verification key path required for local verification");
   }
 
-  // Load vkey - handle both Node.js require and dynamic import
+  // Load vkey - Node.js only (not available in browser)
   let vkey: any;
   try {
     vkey = require(artifacts.vkeyPath);
   } catch {
-    const fs = require("fs");
+    // Dynamic import so bundlers don't resolve fs at compile time
+    const fs = await import(/* webpackIgnore: true */ "fs");
     vkey = JSON.parse(fs.readFileSync(artifacts.vkeyPath, "utf-8"));
   }
 
