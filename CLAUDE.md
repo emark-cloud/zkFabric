@@ -40,7 +40,7 @@ interface IKycSBT {
 - **Proof System**: Groth16 (client-side proving via WASM, ~200K gas on-chain verification)
 - **Smart Contracts**: Solidity 0.8.28, Hardhat, OpenZeppelin
 - **Merkle Tree**: Standard binary IMT (depth 20, arity 2) via `@zk-kit/imt` with Poseidon hash
-- **Frontend**: Next.js 15, viem v2, wagmi, RainbowKit
+- **Frontend**: Next.js 16, viem v2, wagmi, RainbowKit
 - **SDK**: TypeScript, snarkjs, poseidon-lite, @zk-kit/imt
 
 ## Key Architecture Decisions
@@ -123,13 +123,13 @@ cd app && npm run dev
 - **Submission Requirements**: GitHub repo with deployed HashKey Chain contract address in README, short demo video, clean git history from hackathon start (Mar 10)
 - **Winners must complete KYC verification**
 
-## Implementation Status (as of 2026-04-05)
+## Implementation Status (as of 2026-04-06)
 - **Phase 0**: COMPLETE — project scaffolding, toolchain, hello-world circuit
 - **Phase 1**: COMPLETE — all sub-circuits + main selective_disclosure circuit (9,993 constraints, 12/12 tests passing), Groth16Verifier.sol auto-generated
-- **Phase 2**: NOT STARTED — smart contracts
-- **Phase 3**: NOT STARTED — TypeScript SDK
-- **Phase 4**: NOT STARTED — frontend demo
-- **Phase 5**: NOT STARTED — integration & polish
+- **Phase 2**: COMPLETE — all smart contracts (Registry, Verifier, RevocationRegistry, KYCSBTAdapter, ZKTLSAdapter, GatedVault, PrivateGovernance, MockKycSBT, MockERC20), 25 contract tests passing
+- **Phase 3**: COMPLETE — TypeScript SDK (identity, tree, prover, wallet, client, adapters), compiles with zero type errors
+- **Phase 4**: COMPLETE — Next.js 16 frontend (landing, issue, prove, vault pages), RainbowKit + wagmi for HashKey Chain
+- **Phase 5**: COMPLETE — e2e integration tests (2 passing), all 57 tests green, deployed to HashKey Chain Testnet, BN128 field overflow + Groth16 pi_b ordering bugs fixed
 
 ## Research Findings (2026-04-05)
 - **BN128 precompiles**: Confirmed working on OP Stack L2s. Groth16 on-chain verification is safe on HashKey Chain.

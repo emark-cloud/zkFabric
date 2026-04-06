@@ -111,7 +111,7 @@ zkFabric has four layers: credential ingestion, identity commitment, proof gener
 │                │                │                  │                │
 │  KYCSBTAdapter │  Poseidon ID   │  Circom 2.1.9    │  ZKVerifier    │
 │  ZKTLSAdapter  │  Standard IMT  │  Groth16 proofs  │  NullifierReg  │
-│  OnChainAdapter│  Depth 20      │  Client-side gen │  RevocationReg │
+│                │  Depth 20      │  Client-side gen │  RevocationReg │
 ├────────────────┴────────────────┴──────────────────┴────────────────┤
 │                     HashKey Chain (EVM, Chain 133)                   │
 └─────────────────────────────────────────────────────────────────────┘
@@ -146,15 +146,10 @@ contracts/
 │   │                                # - Converts to zkFabric credential format
 │   │                                # - Emits credential commitment to registry
 │   │
-│   ├── ZKTLSAdapter.sol             # Accepts zkTLS attestations
-│   │                                # - Verifies Reclaim Protocol proofs
-│   │                                # - Validates attestation signatures
-│   │                                # - Maps external claims to credential schema
-│   │
-│   └── OnChainAdapter.sol           # Proves on-chain activity
-│                                    # - Reads DeFi protocol state
-│                                    # - Generates activity attestations
-│                                    # - Lending history, volume, governance
+│   └── ZKTLSAdapter.sol             # Accepts zkTLS attestations
+│                                    # - Verifies attestor ECDSA signatures
+│                                    # - Replay protection via attestation IDs
+│                                    # - Maps external claims to credential schema
 │
 ├── consumers/
 │   ├── GatedVault.sol               # Demo: RWA vault with ZK access control
@@ -191,22 +186,18 @@ circuits/
 │   │                                #   - predicateSets[8][4] (for IN_SET)
 │   │                                #
 │   │                                # The circuit proves:
-│   │                                #   1. Identity is in the Semaphore tree
+│   │                                #   1. Identity is in the Merkle tree
 │   │                                #   2. Credential belongs to this identity
 │   │                                #   3. Selected attributes satisfy predicates
 │   │                                #   4. Nullifier is correctly derived
 │   │                                #   All without revealing identity or raw data.
 │   │
-│   ├── range_proof.circom           # Sub-circuit for range predicates
-│   │                                # "Value X is between A and B"
-│   │                                # Used for: age > 18, balance > 10000, tier >= 3
-│   │
-│   └── membership_proof.circom      # Sub-circuit for set membership
-│                                    # "Value X is one of {A, B, C}"
-│                                    # Used for: jurisdiction in allowed list
+│   └── (predicates are built into the main circuit via PredicateEvaluator)
 │
-├── poseidon/
-│   └── poseidon_hasher.circom       # Poseidon hash for in-circuit commitments
+├── lib/
+│   ├── poseidon_hasher.circom       # Poseidon hash wrappers (1/2/9 inputs)
+│   ├── merkle_proof.circom          # Binary Merkle proof (depth-parameterized)
+│   └── predicates.circom            # 5-type predicate evaluator + checker
 │
 └── build/
     ├── selective_disclosure.wasm     # Compiled circuit (client-side proving)
@@ -334,13 +325,11 @@ Each slot can be constrained with one predicate during proof generation:
 
 | Predicate | Operation | Example |
 |-----------|-----------|---------|
-| `NONE` | No constraint on this slot | Slot is ignored |
-| `EQUALS` | slot == value | credentialType == 1 |
-| `NOT_EQUALS` | slot != value | statusFlag != 0 |
-| `GREATER_THAN` | slot > value | kycTier > 2 |
-| `GREATER_EQUAL` | slot >= value | kycTier >= 3 |
-| `LESS_THAN` | slot < value | Used for expiry checks |
-| `IN_SET` | slot ∈ {a, b, c, ...} | jurisdiction ∈ {344, 840} |
+| `NONE` (0) | No constraint on this slot | Slot is ignored |
+| `EQUALS` (1) | slot == value | credentialType == 1 |
+| `GREATER_EQUAL` (2) | slot >= value | kycTier >= 3 |
+| `LESS_THAN` (3) | slot < value | Used for expiry checks |
+| `IN_SET` (4) | slot ∈ {a, b, c, d} (max 4) | jurisdiction ∈ {344, 840} |
 
 ---
 
@@ -429,7 +418,7 @@ contract MyDeFiVault {
     function deposit(
         uint256 amount,
         uint256[8] calldata proof,
-        uint256[6] calldata publicSignals
+        uint256[] calldata publicSignals
     ) external {
         // This is the ENTIRE identity check. One call.
         require(
@@ -453,7 +442,7 @@ The hackathon demo has three screens that demonstrate the complete flow:
 
 The user connects their wallet and the app reads their HashKey KYC SBT status directly from the chain. If verified, they can mint a private credential commitment to the zkFabric registry. This screen also shows the zkTLS flow: the user can attest an off-chain claim (GitHub account age via Reclaim Protocol) and add it as a second credential.
 
-**What the judge sees:** A clean dashboard showing the user's on-chain KYC status, a "Mint Private Credential" button, and real-time feedback as the Semaphore identity commitment is registered on-chain. The credential data itself is stored locally — nothing sensitive goes on-chain.
+**What the judge sees:** A clean dashboard showing the user's on-chain KYC status, a "Mint Private Credential" button, and real-time feedback as the Poseidon identity commitment is registered on-chain. The credential data itself is stored locally — nothing sensitive goes on-chain.
 
 ### Screen 2: Proof Composer
 
@@ -478,7 +467,7 @@ A gated RWA vault (ERC-4626) that accepts zkFabric proofs for deposit access. Us
 | **Hash Function** | Poseidon | ZK-friendly hash (8x fewer constraints than SHA-256 in-circuit). Native to Semaphore and circomlib. |
 | **On-Chain KYC Source** | HashKey KYC SBT | It's the chain's own identity primitive. The KycSBT contract exposes `getKycInfo()` with tier, status, and ENS binding. Building on this signals ecosystem alignment. |
 | **Off-Chain Source** | Reclaim Protocol (zkTLS) | Most mature zkTLS SDK. Supports 300+ data providers. Proof generation is fast (~5s). Falls back gracefully if integration is unstable. |
-| **Frontend** | Next.js 15 + viem v2 + RainbowKit | Standard stack. viem for type-safe contract interactions. RainbowKit for wallet connection. |
+| **Frontend** | Next.js 16 + viem v2 + RainbowKit | Standard stack. viem for type-safe contract interactions. RainbowKit for wallet connection. |
 | **Smart Contracts** | Solidity 0.8.28 + Hardhat | Standard. OpenZeppelin for access control and ERC-4626 vault. |
 | **Chain** | HashKey Chain Testnet (ID: 133) | Required by hackathon. EVM-compatible, OP Stack based. Testnet HSK via faucet. |
 
@@ -510,8 +499,7 @@ zkfabric/
 │   │   └── RevocationRegistry.sol  # Credential revocation
 │   ├── adapters/
 │   │   ├── KYCSBTAdapter.sol       # HashKey KYC SBT integration
-│   │   ├── ZKTLSAdapter.sol        # Reclaim Protocol attestation
-│   │   └── OnChainAdapter.sol      # On-chain activity proofs
+│   │   └── ZKTLSAdapter.sol        # zkTLS attestation (ECDSA signatures)
 │   ├── consumers/
 │   │   ├── GatedVault.sol          # Demo RWA vault (ERC-4626)
 │   │   └── PrivateGovernance.sol   # Demo anonymous voting
@@ -521,44 +509,43 @@ zkfabric/
 │
 ├── circuits/                       # Circom 2.x ZK circuits
 │   ├── credential/
-│   │   ├── selective_disclosure.circom
-│   │   ├── range_proof.circom
-│   │   └── membership_proof.circom
-│   ├── poseidon/
-│   │   └── poseidon_hasher.circom
-│   └── build/                      # Compiled artifacts
-│       ├── selective_disclosure.wasm
-│       ├── selective_disclosure.zkey
+│   │   └── selective_disclosure.circom  # Main circuit (9,993 constraints)
+│   ├── lib/
+│   │   ├── poseidon_hasher.circom  # Poseidon wrappers (1/2/9 inputs)
+│   │   ├── merkle_proof.circom     # Binary Merkle proof template
+│   │   └── predicates.circom       # 5-type predicate evaluator
+│   └── build/                      # Compiled artifacts (large binaries gitignored)
 │       └── verification_key.json
 │
 ├── sdk/                            # TypeScript SDK (@zkfabric/sdk)
 │   ├── src/
-│   │   ├── ZKFabric.ts             # dApp-facing verification client
+│   │   ├── index.ts                # Barrel export
+│   │   ├── types.ts                # Core types, enums, constants
+│   │   ├── identity.ts             # Key generation, commitments, nullifiers
+│   │   ├── tree.ts                 # Merkle tree wrapper (@zk-kit/imt)
+│   │   ├── prover.ts              # Client-side snarkjs wrapper
 │   │   ├── ZKFabricWallet.ts       # User-facing credential + proof client
-│   │   ├── adapters/
-│   │   │   ├── KYCSBTIngester.ts
-│   │   │   ├── ZKTLSIngester.ts
-│   │   │   └── OnChainIngester.ts
-│   │   ├── prover/
-│   │   │   └── Prover.ts           # Client-side snarkjs wrapper
-│   │   └── types.ts
+│   │   ├── ZKFabric.ts             # dApp-facing verification client
+│   │   └── adapters/
+│   │       ├── KYCSBTIngester.ts   # KYC SBT slot packing
+│   │       └── ZKTLSIngester.ts    # zkTLS attestation slot packing
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── app/                            # Next.js 15 demo frontend
-│   ├── app/
+├── app/                            # Next.js 16 demo frontend
+│   ├── src/app/
 │   │   ├── page.tsx                # Landing / connect wallet
 │   │   ├── issue/page.tsx          # Screen 1: Credential Issuer
 │   │   ├── prove/page.tsx          # Screen 2: Proof Composer
 │   │   └── vault/page.tsx          # Screen 3: Gated RWA Vault
-│   ├── components/
-│   │   ├── CredentialCard.tsx
-│   │   ├── ProofBuilder.tsx
-│   │   ├── VaultDashboard.tsx
-│   │   └── GovernancePanel.tsx
-│   └── lib/
-│       ├── contracts.ts            # Contract ABIs + addresses
-│       └── fabric.ts               # SDK initialization
+│   ├── src/components/
+│   │   ├── NavBar.tsx              # Navigation + wallet connect
+│   │   ├── CredentialCard.tsx      # Credential display
+│   │   ├── ProofBuilder.tsx        # Predicate selector UI
+│   │   └── VaultDashboard.tsx      # Vault stats
+│   └── src/lib/
+│       ├── contracts.ts            # Contract ABIs + deployed addresses
+│       └── fabric.ts               # SDK bridge + localStorage persistence
 │
 ├── scripts/
 │   ├── deploy.ts                   # Deploy all contracts to testnet
@@ -566,16 +553,20 @@ zkfabric/
 │   └── demo-flow.ts                # End-to-end demo script
 │
 ├── test/
-│   ├── ZKFabricRegistry.test.ts
-│   ├── ZKFabricVerifier.test.ts
-│   ├── KYCSBTAdapter.test.ts
-│   └── circuits/
-│       └── selective_disclosure.test.ts
+│   ├── circuits/                   # 30 circuit tests
+│   │   ├── hello_world.test.ts
+│   │   ├── sub_circuits.test.ts
+│   │   └── selective_disclosure.test.ts
+│   ├── contracts/                  # 25 contract tests
+│   │   ├── ZKFabricRegistry.test.ts
+│   │   ├── KYCSBTAdapter.test.ts
+│   │   └── RevocationRegistry.test.ts
+│   └── integration/                # 2 e2e tests
+│       └── e2e.test.ts
 │
 ├── hardhat.config.ts
 ├── package.json
-├── README.md
-└── LICENSE
+└── README.md
 ```
 
 ---
@@ -591,8 +582,8 @@ zkfabric/
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/your-username/zkfabric.git
-cd zkfabric
+git clone https://github.com/emark-cloud/zkFabric.git
+cd zkFabric
 npm install
 ```
 
@@ -668,7 +659,7 @@ npm run dev
 
 - [x] Circom selective disclosure circuit with range and set predicates
 - [x] Groth16 trusted setup and client-side proving
-- [x] ZKFabricRegistry with Semaphore V4 identity tree
+- [x] ZKFabricRegistry with standard binary IMT (depth 20)
 - [x] ZKFabricVerifier with on-chain Groth16 verification
 - [x] KYCSBTAdapter — HashKey KYC SBT integration
 - [x] ZKTLSAdapter — Reclaim Protocol zkTLS attestation
