@@ -22,6 +22,21 @@ const config: HardhatUserConfig = {
       accounts: [PRIVATE_KEY],
     },
   },
+  etherscan: {
+    apiKey: {
+      hashkeyTestnet: "no-api-key-needed",
+    },
+    customChains: [
+      {
+        network: "hashkeyTestnet",
+        chainId: 133,
+        urls: {
+          apiURL: "https://testnet-explorer.hsk.xyz/api",
+          browserURL: "https://testnet-explorer.hsk.xyz",
+        },
+      },
+    ],
+  },
 };
 
 export default config;
