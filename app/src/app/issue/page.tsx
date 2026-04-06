@@ -69,6 +69,10 @@ export default function IssuePage() {
   const { writeContract: registerZktlsHash, data: zktlsRegisterTxHash } = useWriteContract();
   const { isSuccess: zktlsRegisterConfirmed } = useWaitForTransactionReceipt({ hash: zktlsRegisterTxHash });
 
+  // Set KYC on MockKycSBT
+  const { writeContract: setKyc, data: setKycTxHash } = useWriteContract();
+  const { isSuccess: setKycConfirmed } = useWaitForTransactionReceipt({ hash: setKycTxHash });
+
   const kycInfo: KycInfo | null = kycData
     ? {
         ensName: (kycData as any)[0] as string,
@@ -267,7 +271,7 @@ export default function IssuePage() {
             <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
               <StepBadge n={2} />KYC Status
             </h2>
-            {kycInfo ? (
+            {kycInfo && isApproved ? (
               <div className="bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-[#71717a]">ENS Name</span>
@@ -279,18 +283,53 @@ export default function IssuePage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#71717a]">Status</span>
-                  <span className={isApproved ? "text-green-400" : "text-red-400"}>
+                  <span className="text-green-400">
                     {["NONE", "APPROVED", "REVOKED"][kycInfo.status]}
                   </span>
                 </div>
               </div>
-            ) : CONTRACTS.kycSBT === "0x0000000000000000000000000000000000000000" ? (
-              <div className="bg-yellow-900/10 border border-yellow-500/20 rounded-lg p-4 text-sm text-yellow-400">
-                KYC SBT contract not deployed yet. Using demo mode — click below to issue
-                a sample credential with mock KYC data (PREMIUM tier, APPROVED).
-              </div>
             ) : (
-              <p className="text-sm text-[#3f3f46]">Loading KYC data...</p>
+              <div className="bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4 space-y-3">
+                <p className="text-sm text-yellow-400">
+                  No KYC found for your address. Register on the MockKycSBT contract to continue.
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {([
+                    { label: "BASIC", level: 1 },
+                    { label: "ADVANCED", level: 2 },
+                    { label: "PREMIUM", level: 3 },
+                    { label: "ULTIMATE", level: 4 },
+                  ] as const).map(({ label, level }) => (
+                    <button
+                      key={level}
+                      onClick={() => {
+                        if (!address) return;
+                        setKyc({
+                          address: CONTRACTS.kycSBT,
+                          abi: KYC_SBT_ABI,
+                          functionName: "setKycInfo",
+                          args: [address, `${address.slice(0, 6)}.hsk`, level, 1],
+                        });
+                        setStatus(`Setting KYC to ${label}...`);
+                      }}
+                      className={`px-3 py-1.5 text-xs font-heading uppercase tracking-wider rounded-lg border transition-all duration-200 ${
+                        level === 3
+                          ? "bg-violet-600/20 border-violet-500/30 text-violet-400 hover:bg-violet-600/30"
+                          : "bg-[#111218] border-[#1a1b23] text-[#a1a1aa] hover:border-[#2d2e3a]"
+                      }`}
+                    >
+                      {label}
+                      {level === 3 && " (Recommended)"}
+                    </button>
+                  ))}
+                </div>
+                {setKycConfirmed && (
+                  <p className="text-sm text-green-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-green-400 animate-dot-pulse inline-block" />
+                    KYC registered! Refresh the page to see your status.
+                  </p>
+                )}
+              </div>
             )}
           </section>
 
@@ -301,8 +340,9 @@ export default function IssuePage() {
             {identity ? (
               <button
                 onClick={() => {
-                  if (isApproved || CONTRACTS.kycSBT === "0x0000000000000000000000000000000000000000") {
-                    if (!kycInfo) {
+                  const noKyc = !kycInfo || (kycInfo.level === 0 && kycInfo.status === 0);
+                  if (isApproved || CONTRACTS.kycSBT === "0x0000000000000000000000000000000000000000" || noKyc) {
+                    if (!kycInfo || noKyc) {
                       const demoKyc: KycInfo = {
                         ensName: "demo.hsk",
                         level: 3,

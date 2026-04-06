@@ -25,11 +25,17 @@ export default function ProvePage() {
 
   const [selectedCredId, setSelectedCredId] = useState<string | null>(null);
   const [predicates, setPredicates] = useState<Predicate[]>([]);
-  const [scope, setScope] = useState("1");
+  const SCOPE_PRESETS = [
+    { label: "Gated Vault", value: "15643852484002470125864880165725370199200481980538641076792348010267222421912" },
+    { label: "Governance", value: "11745176082972158675028345418419896051370761533910634985613910102089869106550" },
+    { label: "Custom", value: "" },
+  ];
+  const [scope, setScope] = useState(SCOPE_PRESETS[0].value);
   const [proofResult, setProofResult] = useState<any>(null);
   const [isProving, setIsProving] = useState(false);
   const [proofTime, setProofTime] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setIdentity(loadIdentity());
@@ -142,14 +148,31 @@ export default function ProvePage() {
           <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa] font-heading">
             Generate Proof
           </h2>
-          <div className="flex items-center gap-4 mb-4">
-            <label className="text-sm text-[#71717a]">Scope:</label>
+          <div className="mb-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-[#71717a]">Scope:</label>
+              <div className="flex gap-2">
+                {SCOPE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => setScope(preset.value)}
+                    className={`px-3 py-1 text-xs font-heading uppercase tracking-wider rounded-lg border transition-all duration-200 ${
+                      scope === preset.value || (preset.label === "Custom" && !SCOPE_PRESETS.slice(0, -1).some((p) => p.value === scope))
+                        ? "border-violet-500/50 text-violet-400 bg-violet-500/10"
+                        : "border-[#1a1b23] text-[#71717a] hover:border-[#2d2e3a]"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <input
               type="text"
               value={scope}
               onChange={(e) => setScope(e.target.value)}
               placeholder="dApp scope (number)"
-              className="bg-[#050505] text-sm rounded px-3 py-2 border border-[#1a1b23] focus:border-violet-500/50 focus:outline-none font-heading w-48 transition-colors"
+              className="bg-[#050505] text-sm rounded px-3 py-2 border border-[#1a1b23] focus:border-violet-500/50 focus:outline-none font-heading w-full transition-colors text-[#71717a]"
             />
           </div>
 
@@ -233,16 +256,39 @@ export default function ProvePage() {
 
             <button
               onClick={() => {
-                navigator.clipboard.writeText(
-                  JSON.stringify({
-                    proof: proofResult.proof.map(String),
-                    publicSignals: proofResult.publicSignals.map(String),
-                  })
-                );
+                const json = JSON.stringify({
+                  proof: proofResult.proof.map(String),
+                  publicSignals: proofResult.publicSignals.map(String),
+                });
+                if (navigator.clipboard?.writeText) {
+                  navigator.clipboard.writeText(json).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }).catch(() => {
+                    // Fallback: select from hidden textarea
+                    const ta = document.createElement("textarea");
+                    ta.value = json;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(ta);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  });
+                } else {
+                  const ta = document.createElement("textarea");
+                  ta.value = json;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand("copy");
+                  document.body.removeChild(ta);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }
               }}
               className="text-xs px-3 py-1.5 bg-[#111218] border border-[#1a1b23] hover:border-[#2d2e3a] rounded-lg transition-colors font-heading uppercase tracking-wider"
             >
-              Copy to Clipboard
+              {copied ? "Copied!" : "Copy to Clipboard"}
             </button>
           </div>
         </section>

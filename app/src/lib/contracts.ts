@@ -96,6 +96,18 @@ export const KYC_SBT_ABI = [
       { name: "createTime", type: "uint256" },
     ],
   },
+  {
+    name: "setKycInfo",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "user", type: "address" },
+      { name: "ensName", type: "string" },
+      { name: "level", type: "uint8" },
+      { name: "status", type: "uint8" },
+    ],
+    outputs: [],
+  },
 ] as const;
 
 export const KYC_ADAPTER_ABI = [
