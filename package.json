@@ -1,0 +1,31 @@
+{
+  "name": "zkfabric",
+  "version": "0.1.0",
+  "description": "Zero-knowledge selective-disclosure identity system for HashKey Chain",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:circuits": "hardhat test test/circuits/**/*.test.ts",
+    "test:contracts": "hardhat test test/contracts/**/*.test.ts",
+    "deploy:testnet": "hardhat run scripts/deploy.ts --network hashkeyTestnet",
+    "circuit:compile": "bash scripts/compile-circuit.sh",
+    "circuit:setup": "bash scripts/setup-ceremony.sh"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
+    "hardhat": "^2.22.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.1.0",
+    "@zk-kit/imt": "2.0.0-beta.8",
+    "circomlib": "^2.0.5",
+    "dotenv": "^17.4.0",
+    "poseidon-lite": "^0.3.0",
+    "snarkjs": "^0.7.5"
+  }
+}

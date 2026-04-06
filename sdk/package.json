@@ -1,0 +1,24 @@
+{
+  "name": "@zkfabric/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for zkFabric — zero-knowledge selective-disclosure identity",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@zk-kit/imt": "2.0.0-beta.8",
+    "poseidon-lite": "^0.3.0",
+    "snarkjs": "^0.7.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "license": "MIT"
+}

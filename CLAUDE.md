@@ -1,0 +1,142 @@
+# zkFabric — Development Guide
+
+## Project Overview
+zkFabric is a zero-knowledge selective-disclosure identity system for HashKey Chain, built for the HashKey Chain On-Chain Horizon Hackathon 2026 (ZKID Track, $10K prize pool).
+
+## Chain: HashKey Chain Testnet
+- **Chain ID**: 133
+- **RPC URLs**: `https://testnet.hsk.xyz` (primary), `https://hk-testnet.rpc.alt.technology` (alt), `https://hashkey-testnet.drpc.org` (drpc)
+- **WebSocket**: `wss://hashkey-testnet.drpc.org`
+- **Explorer**: `https://testnet-explorer.hsk.xyz` (Blockscout)
+- **Faucet**: Bridge Sepolia ETH via HashKey Bridge (no direct faucet confirmed). Original `https://faucet.hsk.xyz/faucet` URL unverified.
+- **KYC Testnet Portal**: `https://kyc-testnet.hunyuankyc.com`
+- **Type**: EVM-compatible L2 (OP Stack based, op-geth v1.101605.0)
+- **Native Token**: HSK (18 decimals)
+- **BN128 Precompiles**: Supported (inherited from OP Stack/Ethereum — ecAdd, ecMul, ecPairing work, Groth16 on-chain verification is safe)
+
+## HashKey KYC SBT Interface
+```solidity
+interface IKycSBT {
+    enum KycLevel { NONE, BASIC, ADVANCED, PREMIUM, ULTIMATE } // 0-4
+    enum KycStatus { NONE, APPROVED, REVOKED } // 0-2
+
+    function getKycInfo(address account) external view returns (
+        string memory ensName,
+        uint8 level,
+        uint8 status,
+        uint256 createTime
+    );
+    function isHuman(address account) external view returns (bool isValid, uint8 level);
+    function requestKyc(string calldata ensName) external payable;
+    function revokeKyc(address user) external;
+    function restoreKyc(address user) external;
+}
+```
+- **Contract address**: TBD — docs reference `KYC_SBT_ADDRESS` but never publish the actual address. Deploy `MockKycSBT.sol` for development; search testnet explorer or ask in HashKey Discord for real address.
+- **Events**: KycRequested, KycLevelUpdated, KycStatusUpdated, KycRevoked, KycRestored, AddressApproved, EnsNameApproved
+
+## Tech Stack
+- **ZK Circuits**: Circom 2.1.9, snarkjs, circomlib (Poseidon, Comparators, MerkleProof)
+- **Proof System**: Groth16 (client-side proving via WASM, ~200K gas on-chain verification)
+- **Smart Contracts**: Solidity 0.8.28, Hardhat, OpenZeppelin
+- **Merkle Tree**: Standard binary IMT (depth 20, arity 2) via `@zk-kit/imt` with Poseidon hash
+- **Frontend**: Next.js 15, viem v2, wagmi, RainbowKit
+- **SDK**: TypeScript, snarkjs, poseidon-lite, @zk-kit/imt
+
+## Key Architecture Decisions
+
+### Identity System (Poseidon-based, NOT Semaphore V4 EdDSA)
+- Identity = random private key (field element)
+- Commitment = Poseidon(privateKey)
+- Simpler than Semaphore V4's EdDSA approach; better suited for custom credential circuits
+
+### Credential Commitment
+- credentialHash = Poseidon(identityCommitment, slot[0], ..., slot[7])
+- 8-slot fixed schema (see README for slot definitions)
+
+### Merkle Tree (Standard Binary IMT, NOT LeanIMT)
+- Using `@zk-kit/imt` (standard Incremental Merkle Tree) for off-chain tree
+- Fixed depth 20, Poseidon hash, arity 2
+- Avoids LeanIMT/circom impedance mismatch (no official LeanIMT circom template)
+- Circuit uses standard `pathElements[20]` + `pathIndices[20]` format
+
+### Nullifier
+- nullifierHash = Poseidon(privateKey, scope)
+- Unique per user per scope (dApp identifier)
+- Prevents double-use within the same scope
+
+## Circuit Constraints Budget (ACTUAL: 9,993 constraints, fits in ptau 2^14)
+- Poseidon(1) for identity: ~240
+- Poseidon(9) for credential: ~417
+- Merkle proof (20 levels): ~4,860
+- Poseidon(2) for nullifier: ~240
+- 8 predicate evaluators (5 types each): ~4,256
+- Total measured: **9,993 non-linear constraints**
+
+## Trusted Setup (Hackathon)
+- Phase 1: Hermez Powers of Tau (`powersOfTau28_hez_final_14.ptau`, 2^14 = 16K constraints)
+- Phase 2: Single-contributor dev ceremony (acceptable for hackathon)
+- Auto-generate `Groth16Verifier.sol` via `snarkjs zkey export solidityverifier`
+
+## Key Commands
+```bash
+# Compile circuit
+circom circuits/credential/selective_disclosure.circom --r1cs --wasm --sym -o circuits/build/ -l node_modules/circomlib/circuits
+
+# Trusted setup
+bash scripts/setup-ceremony.sh
+
+# Compile contracts
+npx hardhat compile
+
+# Run tests
+npx hardhat test
+
+# Deploy to testnet
+npx hardhat run scripts/deploy.ts --network hashkeyTestnet
+
+# Run frontend
+cd app && npm run dev
+```
+
+## External Resources
+- **HashKey Chain Docs**: https://docs.hashkeychain.net
+- **HashKey KYC Docs**: https://docs.hashkeychain.net/docs/Build-on-HashKey-Chain/Tools/KYC
+- **HashKey GitHub**: https://github.com/HashkeyHSK
+- **HashFans Developer Hub**: https://hashfans.io
+- **Circom Docs**: https://docs.circom.io
+- **snarkjs**: https://github.com/iden3/snarkjs
+- **circomlib**: https://github.com/iden3/circomlib
+- **Semaphore V4**: https://docs.semaphore.pse.dev
+- **@zk-kit/imt**: https://github.com/privacy-scaling-explorations/zk-kit
+- **Reclaim Protocol**: https://reclaimprotocol.org
+- **Hackathon Page**: https://dorahacks.io/hackathon/2045/detail
+
+## Hackathon Timeline (CRITICAL)
+- **Total Prize Pool**: 40,000 USDT across 4 tracks (DeFi, PayFi, AI, ZKID)
+- **Registration Deadline**: 2026-04-15
+- **Demo Submission Opens**: 2026-04-14
+- **Project Pre-screening**: 2026-04-14
+- **Official Pitch**: 2026-04-16
+- **Demo Showcase**: 2026-04-22 (AWS Office)
+- **Final Pitch & Awards**: 2026-04-23 (Web3 Festival)
+- **Submission Requirements**: GitHub repo with deployed HashKey Chain contract address in README, short demo video, clean git history from hackathon start (Mar 10)
+- **Winners must complete KYC verification**
+
+## Implementation Status (as of 2026-04-05)
+- **Phase 0**: COMPLETE — project scaffolding, toolchain, hello-world circuit
+- **Phase 1**: COMPLETE — all sub-circuits + main selective_disclosure circuit (9,993 constraints, 12/12 tests passing), Groth16Verifier.sol auto-generated
+- **Phase 2**: NOT STARTED — smart contracts
+- **Phase 3**: NOT STARTED — TypeScript SDK
+- **Phase 4**: NOT STARTED — frontend demo
+- **Phase 5**: NOT STARTED — integration & polish
+
+## Research Findings (2026-04-05)
+- **BN128 precompiles**: Confirmed working on OP Stack L2s. Groth16 on-chain verification is safe on HashKey Chain.
+- **KYC SBT address**: NOT published in any docs. `MockKycSBT.sol` required for development.
+- **Semaphore V4**: Uses EdDSA + Baby Jubjub + LeanIMT. Our custom Poseidon identity + standard IMT is the right divergence for credential circuits.
+- **@zk-kit/imt**: Only beta versions exist (2.0.0-beta.8). API stable: `new IMT(poseidon2, depth, zeroValue, arity)`.
+- **Circom**: 2.2.x exists but 2.1.9 is fine for hackathon. All circomlib templates stable.
+- **snarkjs**: Versions beyond 0.7.6 exist but current version works. No upgrade needed.
+- **Reclaim Protocol**: Uses signature-based attestation (not Groth16). Likely NOT deployed on HashKey Chain testnet. Need mock or self-deploy their verifier.
+- **Faucet**: No direct faucet URL confirmed. Docs say bridge Sepolia ETH via HashKey Bridge.
