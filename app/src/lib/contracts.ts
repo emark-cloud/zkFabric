@@ -11,6 +11,31 @@ export const CONTRACTS = {
   mockERC20: "0x6670bB42279832548E976Fc9f2ddEbA6A03539F8" as `0x${string}`,
 } as const;
 
+export const ZKTLS_ADAPTER_ABI = [
+  {
+    name: "submitAttestation",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "user", type: "address" },
+      { name: "identityCommitment", type: "uint256" },
+      { name: "attestationData", type: "bytes" },
+      { name: "signature", type: "bytes" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    name: "registerComputedCredential",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "identityCommitment", type: "uint256" },
+      { name: "credentialHash", type: "uint256" },
+    ],
+    outputs: [],
+  },
+] as const;
+
 // ABIs — minimal fragments for frontend interactions
 
 export const REGISTRY_ABI = [

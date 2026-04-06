@@ -7,6 +7,7 @@ import {
 import { CredentialTree } from "../../../sdk/src/tree";
 import { buildCircuitInput } from "../../../sdk/src/prover";
 import { packKycSlots, type KycInfo } from "../../../sdk/src/adapters/KYCSBTIngester";
+import { packZktlsSlots, type ZKTLSAttestation } from "../../../sdk/src/adapters/ZKTLSIngester";
 import {
   type Identity,
   type Credential,
@@ -27,12 +28,13 @@ export {
   CredentialTree,
   buildCircuitInput,
   packKycSlots,
+  packZktlsSlots,
   PredicateType,
   CredentialType,
   NUM_SLOTS,
   SET_SIZE,
 };
-export type { Identity, Credential, MerkleProof, Predicate, KycInfo };
+export type { Identity, Credential, MerkleProof, Predicate, KycInfo, ZKTLSAttestation };
 
 // Circuit artifact paths (relative to public/)
 export const WASM_PATH = "/circuits/selective_disclosure.wasm";

@@ -73,7 +73,7 @@ export default function VaultPage() {
         address: CONTRACTS.gatedVault,
         abi: GATED_VAULT_ABI,
         functionName: "depositWithProof",
-        args: [parseEther(depositAmount), proof, publicSignals],
+        args: [parseEther(depositAmount), address!, proof, publicSignals],
       });
     } catch (err: any) {
       setStatus("Invalid proof JSON: " + err.message);
