@@ -8,6 +8,12 @@ interface Props {
   userAddress?: `0x${string}`;
 }
 
+const CARDS = [
+  { label: "Total Vault Assets", border: "border-l-violet-500", color: "text-violet-400" },
+  { label: "Your Token Balance", border: "border-l-cyan-500", color: "text-cyan-400" },
+  { label: "Vault Scope", border: "border-l-green-500", color: "" },
+];
+
 export function VaultDashboard({ userAddress }: Props) {
   const contractsDeployed =
     CONTRACTS.gatedVault !== "0x0000000000000000000000000000000000000000";
@@ -34,34 +40,27 @@ export function VaultDashboard({ userAddress }: Props) {
     query: { enabled: contractsDeployed },
   });
 
+  const values = [
+    <span key="assets">{totalAssets ? formatEther(totalAssets as bigint) : "0"} <span className="text-sm text-[#71717a]">MOCK</span></span>,
+    <span key="balance">{userBalance ? formatEther(userBalance as bigint) : "0"} <span className="text-sm text-[#71717a]">MOCK</span></span>,
+    <span key="scope" className="text-sm font-heading text-[#71717a] break-all">{vaultScope ? (vaultScope as bigint).toString().slice(0, 20) + "..." : "N/A"}</span>,
+  ];
+
   return (
     <div className="grid sm:grid-cols-3 gap-4 mb-8">
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-          Total Vault Assets
-        </p>
-        <p className="text-2xl font-bold text-violet-400">
-          {totalAssets ? formatEther(totalAssets as bigint) : "0"}{" "}
-          <span className="text-sm text-gray-500">MOCK</span>
-        </p>
-      </div>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-          Your Token Balance
-        </p>
-        <p className="text-2xl font-bold">
-          {userBalance ? formatEther(userBalance as bigint) : "0"}{" "}
-          <span className="text-sm text-gray-500">MOCK</span>
-        </p>
-      </div>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-          Vault Scope
-        </p>
-        <p className="text-sm font-mono text-gray-400 break-all">
-          {vaultScope ? (vaultScope as bigint).toString().slice(0, 20) + "..." : "N/A"}
-        </p>
-      </div>
+      {CARDS.map((card, i) => (
+        <div
+          key={card.label}
+          className={`bg-[#0a0b0d] border border-[#1a1b23] border-l-2 ${card.border} rounded-xl p-5 hover:border-[#2d2e3a] transition-all duration-300 animate-fade-in-up stagger-${i + 1}`}
+        >
+          <p className="text-[10px] font-heading text-[#71717a] uppercase tracking-widest mb-1">
+            {card.label}
+          </p>
+          <p className={`text-2xl font-bold font-heading ${card.color}`}>
+            {values[i]}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,26 +1,139 @@
 @import "tailwindcss";
 
+/* ── Design System: Cryptographic Noir ── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --noir-bg: #050505;
+  --noir-surface: #0a0b0d;
+  --noir-surface-hover: #111218;
+  --noir-border: #1a1b23;
+  --noir-border-active: #2d2e3a;
+  --noir-text: #e4e4e7;
+  --noir-text-muted: #71717a;
+  --noir-text-dim: #3f3f46;
+  --violet: #8b5cf6;
+  --violet-bright: #a78bfa;
+  --violet-dim: #6d28d9;
+  --cyan: #22d3ee;
+  --cyan-dim: #0891b2;
+  --green: #34d399;
+  --red: #f87171;
+  --yellow: #fbbf24;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--noir-bg);
+  --color-foreground: var(--noir-text);
+  --font-heading: var(--font-jetbrains-mono);
+  --font-body: var(--font-dm-sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Keyframes ── */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 8px 0 rgba(139, 92, 246, 0.15); }
+  50% { box-shadow: 0 0 24px 4px rgba(139, 92, 246, 0.3); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Animation Utilities ── */
+
+.animate-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+.animate-fade-in {
+  opacity: 0;
+  animation: fadeIn 0.3s ease-out forwards;
+}
+.animate-glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out forwards;
+}
+.animate-dot-pulse {
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(139, 92, 246, 0.08) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+/* ── Visual Utilities ── */
+
+.glow-border {
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2), 0 0 15px -3px rgba(139, 92, 246, 0.15);
+}
+.glow-border-cyan {
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.2), 0 0 15px -3px rgba(34, 211, 238, 0.15);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #8b5cf6, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Base Styles ── */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--noir-bg);
+  color: var(--noir-text);
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
+}
+
+::selection {
+  background: rgba(139, 92, 246, 0.3);
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #050505; }
+::-webkit-scrollbar-thumb { background: #1a1b23; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2d2e3a; }
+
+/* ── Noise Overlay ── */
+
+.noise-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  opacity: 0.025;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  z-index: 100;
 }

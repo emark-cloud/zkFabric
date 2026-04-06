@@ -27,6 +27,14 @@ import { CredentialCard } from "@/components/CredentialCard";
 
 type Tab = "kyc" | "zktls";
 
+function StepBadge({ n }: { n: number }) {
+  return (
+    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-violet-600/20 text-violet-400 text-xs font-heading mr-2">
+      {n}
+    </span>
+  );
+}
+
 export default function IssuePage() {
   const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<Tab>("kyc");
@@ -37,7 +45,6 @@ export default function IssuePage() {
   const [status, setStatus] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Load persisted state
   useEffect(() => {
     const id = loadIdentity();
     if (id) setIdentity(id);
@@ -46,7 +53,6 @@ export default function IssuePage() {
     setLeafIndices(loadLeafIndices());
   }, []);
 
-  // Read KYC SBT info
   const { data: kycData } = useReadContract({
     address: CONTRACTS.kycSBT,
     abi: KYC_SBT_ABI,
@@ -55,13 +61,11 @@ export default function IssuePage() {
     query: { enabled: !!address && CONTRACTS.kycSBT !== "0x0000000000000000000000000000000000000000" },
   });
 
-  // Contract write hooks — KYC
   const { writeContract: ingestOnChain, data: ingestTxHash } = useWriteContract();
   const { writeContract: registerHash, data: registerTxHash } = useWriteContract();
   const { isSuccess: ingestConfirmed } = useWaitForTransactionReceipt({ hash: ingestTxHash });
   const { isSuccess: registerConfirmed } = useWaitForTransactionReceipt({ hash: registerTxHash });
 
-  // Contract write hooks — zkTLS
   const { writeContract: registerZktlsHash, data: zktlsRegisterTxHash } = useWriteContract();
   const { isSuccess: zktlsRegisterConfirmed } = useWaitForTransactionReceipt({ hash: zktlsRegisterTxHash });
 
@@ -76,7 +80,6 @@ export default function IssuePage() {
 
   const isApproved = kycInfo && kycInfo.status === 1 && kycInfo.level >= 1;
 
-  // Create or load identity
   const handleCreateIdentity = useCallback(() => {
     const id = createIdentity();
     setIdentity(id);
@@ -84,7 +87,6 @@ export default function IssuePage() {
     setStatus("Identity created! Commitment: " + id.commitment.toString().slice(0, 20) + "...");
   }, []);
 
-  // Helper: persist a new credential
   const persistCredential = useCallback(
     (credential: Credential, currentTree: CredentialTree) => {
       const leafIndex = currentTree.addCredential(credential.credentialHash);
@@ -102,14 +104,13 @@ export default function IssuePage() {
     [credentials, leafIndices]
   );
 
-  // Issue credential from KYC data
   const handleIssueCredential = useCallback(async () => {
     if (!identity || !kycInfo || !tree) return;
     setIsProcessing(true);
     setStatus("Packing credential data...");
 
     try {
-      const slots = packKycSlots(kycInfo, 344n, 1n); // 344 = HK jurisdiction
+      const slots = packKycSlots(kycInfo, 344n, 1n);
       const credentialHash = computeCredentialHash(identity.commitment, slots);
 
       const credential: Credential = {
@@ -124,7 +125,6 @@ export default function IssuePage() {
       persistCredential(credential, tree);
       setStatus("Credential created locally! Hash: " + credentialHash.toString().slice(0, 20) + "...");
 
-      // Register on-chain if contracts are deployed
       if (CONTRACTS.kycAdapter !== "0x0000000000000000000000000000000000000000" && address) {
         setStatus("Registering on-chain via KYCSBTAdapter...");
         ingestOnChain({
@@ -141,7 +141,6 @@ export default function IssuePage() {
     }
   }, [identity, kycInfo, tree, address, ingestOnChain, persistCredential]);
 
-  // Issue zkTLS credential (demo mode)
   const handleIssueZktls = useCallback(() => {
     if (!identity || !tree) return;
     setIsProcessing(true);
@@ -150,14 +149,14 @@ export default function IssuePage() {
     try {
       const attestation: ZKTLSAttestation = {
         provider: "github-account-age",
-        primaryAttribute: 3n, // score band 3 (e.g. account age > 2 years)
+        primaryAttribute: 3n,
         timestamp: BigInt(Math.floor(Date.now() / 1000)),
-        jurisdictionCode: 0n, // global
-        auxiliaryData1: 2019n, // account creation year
+        jurisdictionCode: 0n,
+        auxiliaryData1: 2019n,
         auxiliaryData2: 0n,
       };
 
-      const slots = packZktlsSlots(attestation, 2n); // issuer=2 (Reclaim)
+      const slots = packZktlsSlots(attestation, 2n);
       const credentialHash = computeCredentialHash(identity.commitment, slots);
 
       const credential: Credential = {
@@ -172,7 +171,6 @@ export default function IssuePage() {
       persistCredential(credential, tree);
       setStatus("zkTLS credential created! Hash: " + credentialHash.toString().slice(0, 20) + "...");
 
-      // Register on-chain if adapter is deployed
       if (CONTRACTS.zktlsAdapter !== "0x0000000000000000000000000000000000000000") {
         setStatus("Registering credential hash on-chain via ZKTLSAdapter...");
         registerZktlsHash({
@@ -189,7 +187,6 @@ export default function IssuePage() {
     }
   }, [identity, tree, persistCredential, registerZktlsHash]);
 
-  // Handle on-chain registration confirmation — KYC
   useEffect(() => {
     if (ingestConfirmed && credentials.length > 0) {
       const latest = credentials[credentials.length - 1];
@@ -204,20 +201,16 @@ export default function IssuePage() {
   }, [ingestConfirmed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (registerConfirmed) {
-      setStatus("Credential fully registered on-chain!");
-    }
+    if (registerConfirmed) setStatus("Credential fully registered on-chain!");
   }, [registerConfirmed]);
 
   useEffect(() => {
-    if (zktlsRegisterConfirmed) {
-      setStatus("zkTLS credential registered on-chain!");
-    }
+    if (zktlsRegisterConfirmed) setStatus("zkTLS credential registered on-chain!");
   }, [zktlsRegisterConfirmed]);
 
   if (!isConnected) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center text-gray-500">
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center text-[#3f3f46]">
         Connect your wallet to issue credentials.
       </div>
     );
@@ -225,22 +218,24 @@ export default function IssuePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-bold mb-6">Issue Credential</h1>
+      <h1 className="text-2xl font-bold font-heading mb-8 animate-fade-in-up">Issue Credential</h1>
 
-      {/* Step 1: Identity (shared across tabs) */}
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3 text-gray-300">Step 1: Identity</h2>
+      {/* Step 1: Identity */}
+      <section className="mb-8 animate-fade-in-up stagger-1">
+        <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
+          <StepBadge n={1} />Identity
+        </h2>
         {identity ? (
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-            <p className="text-sm text-gray-400">Identity commitment:</p>
-            <p className="font-mono text-sm text-violet-400 break-all">
+          <div className="bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4">
+            <p className="text-sm text-[#71717a]">Identity commitment:</p>
+            <p className="font-heading text-sm text-violet-400 break-all">
               {identity.commitment.toString()}
             </p>
           </div>
         ) : (
           <button
             onClick={handleCreateIdentity}
-            className="px-6 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg font-medium transition"
+            className="px-6 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 rounded-lg font-heading uppercase tracking-wider text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(139,92,246,0.25)]"
           >
             Create Identity
           </button>
@@ -248,63 +243,61 @@ export default function IssuePage() {
       </section>
 
       {/* Tab selector */}
-      <div className="flex gap-1 mb-8 bg-gray-900 rounded-lg p-1 border border-gray-800">
-        <button
-          onClick={() => setActiveTab("kyc")}
-          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition ${
-            activeTab === "kyc"
-              ? "bg-violet-600 text-white"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          KYC SBT
-        </button>
-        <button
-          onClick={() => setActiveTab("zktls")}
-          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition ${
-            activeTab === "zktls"
-              ? "bg-violet-600 text-white"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          zkTLS Attestation
-        </button>
+      <div className="flex gap-8 mb-8 border-b border-[#1a1b23] animate-fade-in-up stagger-2">
+        {(["kyc", "zktls"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`relative pb-3 text-sm font-heading uppercase tracking-wider transition-colors ${
+              activeTab === tab ? "text-white" : "text-[#3f3f46] hover:text-[#71717a]"
+            }`}
+          >
+            {tab === "kyc" ? "KYC SBT" : "zkTLS Attestation"}
+            {activeTab === tab && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-cyan-500 rounded-full" />
+            )}
+          </button>
+        ))}
       </div>
 
       {/* KYC SBT Tab */}
       {activeTab === "kyc" && (
         <>
           <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-3 text-gray-300">Step 2: KYC Status</h2>
+            <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
+              <StepBadge n={2} />KYC Status
+            </h2>
             {kycInfo ? (
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2 text-sm">
+              <div className="bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">ENS Name</span>
+                  <span className="text-[#71717a]">ENS Name</span>
                   <span>{kycInfo.ensName || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Level</span>
+                  <span className="text-[#71717a]">Level</span>
                   <span>{["NONE", "BASIC", "ADVANCED", "PREMIUM", "ULTIMATE"][kycInfo.level]}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Status</span>
+                  <span className="text-[#71717a]">Status</span>
                   <span className={isApproved ? "text-green-400" : "text-red-400"}>
                     {["NONE", "APPROVED", "REVOKED"][kycInfo.status]}
                   </span>
                 </div>
               </div>
             ) : CONTRACTS.kycSBT === "0x0000000000000000000000000000000000000000" ? (
-              <div className="bg-yellow-900/20 border border-yellow-800/50 rounded-lg p-4 text-sm text-yellow-400">
+              <div className="bg-yellow-900/10 border border-yellow-500/20 rounded-lg p-4 text-sm text-yellow-400">
                 KYC SBT contract not deployed yet. Using demo mode — click below to issue
                 a sample credential with mock KYC data (PREMIUM tier, APPROVED).
               </div>
             ) : (
-              <p className="text-sm text-gray-500">Loading KYC data...</p>
+              <p className="text-sm text-[#3f3f46]">Loading KYC data...</p>
             )}
           </section>
 
           <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-3 text-gray-300">Step 3: Mint Credential</h2>
+            <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
+              <StepBadge n={3} />Mint Credential
+            </h2>
             {identity ? (
               <button
                 onClick={() => {
@@ -335,12 +328,12 @@ export default function IssuePage() {
                   }
                 }}
                 disabled={isProcessing}
-                className="px-6 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg font-medium transition"
+                className="px-6 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 rounded-lg font-heading uppercase tracking-wider text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(139,92,246,0.25)]"
               >
                 {isProcessing ? "Processing..." : "Mint KYC Credential"}
               </button>
             ) : (
-              <p className="text-sm text-gray-500">Create an identity first.</p>
+              <p className="text-sm text-[#3f3f46]">Create an identity first.</p>
             )}
           </section>
         </>
@@ -350,39 +343,41 @@ export default function IssuePage() {
       {activeTab === "zktls" && (
         <>
           <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-3 text-gray-300">Step 2: Attestation Source</h2>
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
+            <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
+              <StepBadge n={2} />Attestation Source
+            </h2>
+            <div className="bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-lg">
+                <div className="w-10 h-10 bg-[#111218] border border-[#1a1b23] rounded-lg flex items-center justify-center text-sm font-heading text-cyan-400">
                   GH
                 </div>
                 <div>
                   <p className="text-sm font-medium">GitHub Account Age</p>
-                  <p className="text-xs text-gray-500">via Reclaim Protocol (zkTLS)</p>
+                  <p className="text-xs text-[#71717a]">via Reclaim Protocol (zkTLS)</p>
                 </div>
-                <span className="ml-auto text-xs px-2 py-1 bg-yellow-900/30 text-yellow-400 rounded-full">
+                <span className="ml-auto text-[10px] font-heading uppercase tracking-widest px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded-full border border-yellow-500/20">
                   Demo
                 </span>
               </div>
-              <div className="border-t border-gray-800 pt-3 space-y-2 text-sm">
+              <div className="border-t border-[#1a1b23] pt-3 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Provider</span>
-                  <span>github-account-age</span>
+                  <span className="text-[#71717a]">Provider</span>
+                  <span className="font-heading text-cyan-400">github-account-age</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Score Band</span>
+                  <span className="text-[#71717a]">Score Band</span>
                   <span>3 (account age &gt; 2 years)</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Account Created</span>
+                  <span className="text-[#71717a]">Account Created</span>
                   <span>2019</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Jurisdiction</span>
+                  <span className="text-[#71717a]">Jurisdiction</span>
                   <span>Global (0)</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[#3f3f46]">
                 In production, Reclaim Protocol fetches a signed attestation from the data provider.
                 This demo uses simulated attestation data.
               </p>
@@ -390,17 +385,19 @@ export default function IssuePage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-3 text-gray-300">Step 3: Mint Credential</h2>
+            <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
+              <StepBadge n={3} />Mint Credential
+            </h2>
             {identity ? (
               <button
                 onClick={handleIssueZktls}
                 disabled={isProcessing}
-                className="px-6 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg font-medium transition"
+                className="px-6 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 rounded-lg font-heading uppercase tracking-wider text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(139,92,246,0.25)]"
               >
                 {isProcessing ? "Processing..." : "Mint zkTLS Credential"}
               </button>
             ) : (
-              <p className="text-sm text-gray-500">Create an identity first.</p>
+              <p className="text-sm text-[#3f3f46]">Create an identity first.</p>
             )}
           </section>
         </>
@@ -408,15 +405,15 @@ export default function IssuePage() {
 
       {/* Status */}
       {status && (
-        <div className="mb-8 bg-gray-900/50 border border-gray-800 rounded-lg p-3 text-sm text-gray-300">
+        <div className="mb-8 bg-[#0a0b0d]/50 border border-[#1a1b23] border-l-2 border-l-violet-500 rounded-lg p-3 text-sm text-[#a1a1aa] animate-slide-down">
           {status}
         </div>
       )}
 
       {/* Credentials */}
       {credentials.length > 0 && (
-        <section>
-          <h2 className="text-lg font-semibold mb-3 text-gray-300">Your Credentials</h2>
+        <section className="animate-fade-in-up stagger-3">
+          <h2 className="text-lg font-semibold font-heading mb-3 text-[#a1a1aa]">Your Credentials</h2>
           <div className="space-y-4">
             {credentials.map((cred) => (
               <CredentialCard key={cred.id} credential={cred} />
