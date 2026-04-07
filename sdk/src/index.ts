@@ -26,6 +26,9 @@ export {
   createIdentity,
   computeCredentialHash,
   computeNullifier,
+  generateMnemonic12,
+  privateKeyFromMnemonic,
+  identityFromMnemonic,
 } from "./identity";
 
 // Merkle tree

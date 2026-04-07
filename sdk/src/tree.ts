@@ -81,4 +81,26 @@ export class CredentialTree {
     }
     return ct;
   }
+
+  /**
+   * Hydrate the tree from a remote indexer that has been watching the
+   * `CredentialRegistered` event on `ZKFabricRegistry`.
+   *
+   * The indexer is expected to expose `GET {baseUrl}/leaves` returning
+   * `{ leaves: string[] }` in insertion order. This is the recoverable
+   * source of truth — losing local browser state is no longer fatal because
+   * the tree can always be rebuilt by replaying on-chain events.
+   */
+  static async fromIndexer(baseUrl: string): Promise<CredentialTree> {
+    const url = baseUrl.replace(/\/$/, "") + "/leaves";
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Indexer ${url} returned ${res.status}`);
+    }
+    const data = (await res.json()) as { leaves: string[] };
+    if (!Array.isArray(data.leaves)) {
+      throw new Error(`Indexer ${url} returned malformed payload`);
+    }
+    return CredentialTree.import(data);
+  }
 }

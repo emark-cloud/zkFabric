@@ -3,6 +3,8 @@ import {
   computeCredentialHash,
   computeNullifier,
   computeIdentityCommitment,
+  generateMnemonic12,
+  identityFromMnemonic,
 } from "../../../sdk/src/identity";
 import { CredentialTree } from "../../../sdk/src/tree";
 import { buildCircuitInput } from "../../../sdk/src/prover";
@@ -25,6 +27,8 @@ export {
   computeCredentialHash,
   computeNullifier,
   computeIdentityCommitment,
+  generateMnemonic12,
+  identityFromMnemonic,
   CredentialTree,
   buildCircuitInput,
   packKycSlots,
@@ -34,6 +38,11 @@ export {
   NUM_SLOTS,
   SET_SIZE,
 };
+
+// Public indexer URL — frontend reads from this to rebuild the credential tree
+// without trusting localStorage. Override with NEXT_PUBLIC_INDEXER_URL.
+export const INDEXER_URL =
+  process.env.NEXT_PUBLIC_INDEXER_URL ?? "http://localhost:8787";
 export type { Identity, Credential, MerkleProof, Predicate, KycInfo, ZKTLSAttestation };
 
 // Circuit artifact paths (relative to public/)
@@ -42,6 +51,7 @@ export const ZKEY_PATH = "/circuits/selective_disclosure_final.zkey";
 
 // Local storage keys
 const STORAGE_KEY_IDENTITY = "zkfabric_identity";
+const STORAGE_KEY_MNEMONIC = "zkfabric_mnemonic";
 const STORAGE_KEY_CREDENTIALS = "zkfabric_credentials";
 const STORAGE_KEY_TREE = "zkfabric_tree";
 const STORAGE_KEY_LEAF_INDICES = "zkfabric_leaf_indices";
@@ -144,9 +154,91 @@ export function loadLeafIndices(): Map<string, number> {
  */
 export function clearAll(): void {
   localStorage.removeItem(STORAGE_KEY_IDENTITY);
+  localStorage.removeItem(STORAGE_KEY_MNEMONIC);
   localStorage.removeItem(STORAGE_KEY_CREDENTIALS);
   localStorage.removeItem(STORAGE_KEY_TREE);
   localStorage.removeItem(STORAGE_KEY_LEAF_INDICES);
+}
+
+// ============================================================================
+// Recoverable identity (BIP39 mnemonic)
+// ============================================================================
+
+/**
+ * Persist a mnemonic so the user can recover their identity on another device.
+ * The mnemonic is the source of truth — `Identity` is derived from it.
+ */
+export function saveMnemonic(mnemonic: string): void {
+  localStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
+}
+
+export function loadMnemonic(): string | null {
+  return localStorage.getItem(STORAGE_KEY_MNEMONIC);
+}
+
+/**
+ * Get an existing mnemonic-backed identity, or generate a new mnemonic + identity
+ * on first use. Returns both so the caller can show the mnemonic to the user
+ * the very first time it's created (and only then) for backup.
+ */
+export function loadOrCreateMnemonicIdentity(): {
+  identity: Identity;
+  mnemonic: string;
+  isNew: boolean;
+} {
+  const existing = loadMnemonic();
+  if (existing) {
+    const identity = identityFromMnemonic(existing);
+    saveIdentity(identity);
+    return { identity, mnemonic: existing, isNew: false };
+  }
+  const mnemonic = generateMnemonic12();
+  const identity = identityFromMnemonic(mnemonic);
+  saveMnemonic(mnemonic);
+  saveIdentity(identity);
+  return { identity, mnemonic, isNew: true };
+}
+
+/**
+ * Restore an identity from a user-provided mnemonic (recovery flow).
+ * Replaces any existing local mnemonic + identity.
+ */
+export function restoreFromMnemonic(mnemonic: string): Identity {
+  const identity = identityFromMnemonic(mnemonic.trim());
+  saveMnemonic(mnemonic.trim());
+  saveIdentity(identity);
+  return identity;
+}
+
+// ============================================================================
+// Indexer-backed tree sync
+// ============================================================================
+
+/**
+ * Rebuild the credential Merkle tree from the on-chain event log via the
+ * zkFabric indexer. This is the recoverable source of truth — losing
+ * localStorage is no longer fatal because the tree can always be replayed.
+ *
+ * Falls back to the locally cached tree if the indexer is unreachable so
+ * existing demos keep working in offline / dev environments.
+ */
+export async function syncTreeFromIndexer(
+  baseUrl: string = INDEXER_URL
+): Promise<CredentialTree> {
+  try {
+    const tree = await CredentialTree.fromIndexer(baseUrl);
+    saveTree(tree);
+    return tree;
+  } catch (err) {
+    console.warn(
+      `[fabric] indexer sync failed (${baseUrl}), using local cache:`,
+      err
+    );
+    const cached = loadTree();
+    if (cached) return cached;
+    // Final fallback: empty tree.
+    return new CredentialTree();
+  }
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   loadCredentials,
   loadTree,
   loadLeafIndices,
+  syncTreeFromIndexer,
   generateProofInBrowser,
   type Identity,
   type Credential,
@@ -39,8 +40,21 @@ export default function ProvePage() {
   useEffect(() => {
     setIdentity(loadIdentity());
     setCredentials(loadCredentials());
-    setTree(loadTree());
     setLeafIndices(loadLeafIndices());
+
+    // Source of truth for the credential tree is the on-chain event log,
+    // replayed via the indexer. Local cache is only a fallback.
+    let cancelled = false;
+    syncTreeFromIndexer()
+      .then((t) => {
+        if (!cancelled) setTree(t);
+      })
+      .catch(() => {
+        if (!cancelled) setTree(loadTree());
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const selectedCred = credentials.find((c) => c.id === selectedCredId);
