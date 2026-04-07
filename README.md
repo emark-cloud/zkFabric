@@ -10,8 +10,10 @@
 [![Groth16](https://img.shields.io/badge/Groth16-snarkjs-blue?style=flat-square)](https://github.com/iden3/snarkjs)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-**Contracts:** Deployed on HashKey Chain Testnet (Chain ID: 133)
+**Contracts:** Deployed on HashKey Chain Testnet (Chain ID: 133) — all 10 core contracts verified on Blockscout
 **Built for:** [HashKey Chain On-Chain Horizon Hackathon 2026](https://dorahacks.io/hackathon/2045) — ZKID Track ($10K Prize Pool)
+**Integration guide:** [`INTEGRATION.md`](./INTEGRATION.md) — ~60 lines of Solidity + ~40 lines of TypeScript to gate any dApp on zkFabric
+**Status:** 65/65 tests passing · BIP39-recoverable identities · on-chain revocation enforcement · event-sourced tree replay · Reclaim-backed zkTLS attestor
 
 ---
 
@@ -452,9 +454,24 @@ The user selects which claims they want to prove, and for which dApp scope. The 
 
 ### Screen 3: Partner dApp Demo
 
-A gated RWA vault (ERC-4626) that accepts zkFabric proofs for deposit access. Users with basic KYC get a standard tier. Users who can prove both KYC *and* off-chain creditworthiness (via the zkTLS credential) unlock a premium tier with better yield. A separate tab shows anonymous governance voting where each verified user gets exactly one vote.
+A gated RWA vault (ERC-4626) that accepts zkFabric proofs for deposit access. Users with basic KYC get a standard tier. Users who can prove both KYC *and* off-chain creditworthiness (via the zkTLS credential) unlock a premium tier with better yield.
 
-**What the judge sees:** The practical payoff. Two users with different credential combinations getting different access levels — all without the vault ever learning their identity. The governance demo shows that the same identity system supports both DeFi compliance and anonymous participation.
+**What the judge sees:** The practical payoff. Two users with different credential combinations getting different access levels — all without the vault ever learning their identity.
+
+### Screen 4: Private Governance
+
+A second consumer contract (`PrivateGovernance.sol`) showing the infrastructure is reusable. Users create proposals, copy the per-proposal scope, generate a proof on the Prove page, and cast an anonymous YES/NO vote. Nullifiers are bound to `keccak256("zkfabric-governance-v1" || proposalId)` so identities can vote on many proposals but never twice on the same one.
+
+**What the judge sees:** The same credential powering two entirely different dApps (DeFi vault + DAO voting) with unlinkable nullifiers — proving zkFabric is reusable ZK identity infrastructure, not a single-purpose demo.
+
+### Screen 5: Revocation Dashboard
+
+Issuer-only dashboard at `/revoke` listing every credential from the on-chain event log via the indexer. Three revocation modes:
+- **Credential hash** — revoke a specific leaf
+- **Merkle root** — invalidate every proof built against that root (use after rotating out a compromised leaf)
+- **Nullifier** — defense-in-depth ban of an already-seen nullifier
+
+All three are enforced by `ZKFabricVerifier.verifyAndRecord` without any circuit changes. Verified by a dedicated e2e test.
 
 ---
 
@@ -532,8 +549,20 @@ zkfabric/
 │       ├── contracts.ts            # Contract ABIs + deployed addresses
 │       └── fabric.ts               # SDK bridge + localStorage persistence
 │
+├── indexer/                        # Event-sourced Merkle tree indexer
+│   └── src/index.ts                # Hono + viem watcher, /leaves /root /health
+│
+├── attestor/                       # Reclaim Protocol zkTLS backend signer
+│   └── src/index.ts                # Hono + @reclaimprotocol/js-sdk + EIP-191 signing
+│
+├── examples/
+│   └── integration-example/        # Minimal third-party dApp consumer
+│       └── contracts/ExampleGatedApp.sol
+│
 ├── scripts/
 │   ├── deploy.ts                   # Deploy all contracts to testnet
+│   ├── deploy-multisig.ts          # Deploy 2-of-N multisig + transfer ownership
+│   ├── set-attestor.ts             # Wire ZKTLSAdapter to attestor signing key
 │   ├── setup-ceremony.sh           # Groth16 trusted setup (Powers of Tau)
 │   └── demo-flow.ts                # End-to-end demo script
 │
@@ -640,6 +669,44 @@ npm run dev
 
 ---
 
+## Production Hardening
+
+Beyond the hackathon demo, zkFabric is being pushed toward a real-product bar.
+The workstreams below are all merged on `main` (plan:
+`.claude/plans/crispy-purring-wozniak.md`):
+
+- **W1 · On-chain revocation enforcement.** `ZKFabricVerifier.verifyAndRecord`
+  now checks `RevocationRegistry.isRootRevoked` and `isNullifierRevoked` before
+  accepting any proof. Zero circuit changes — enforcement is contract-layer.
+- **W2 · Event-indexed tree + recoverable identity.** New
+  [`indexer/`](./indexer) package replays `CredentialRegistered` events and
+  exposes `/leaves`, `/root`, `/health`. `CredentialTree.fromIndexer()` in the
+  SDK hydrates from it. BIP39 12-word mnemonics via `@scure/bip39` make
+  identities recoverable — losing the browser no longer bricks credentials.
+- **W3 · Real Reclaim zkTLS.** New [`attestor/`](./attestor) Hono service
+  verifies Reclaim proofs server-side via `@reclaimprotocol/js-sdk`, packs 8
+  credential slots, and signs `keccak256(abi.encodePacked(user, commitment,
+  attestationData))` with EIP-191. `ZKTLSAdapter.submitAttestation` recovers
+  the exact attestor address — no mock data on the critical path.
+- **W4 · Threshold multisig ownership.** New
+  [`ZKFabricMultisig.sol`](./contracts/governance/ZKFabricMultisig.sol)
+  (~100 lines, 3 tests) replaces single-EOA ownership of Registry, Verifier,
+  and RevocationRegistry. `scripts/deploy-multisig.ts` deploys + transfers.
+- **W5 · PrivateGovernance UI.** Second consumer dApp live at `/governance` —
+  create proposals, per-proposal scopes, anonymous voting. Proves the
+  infrastructure is reusable, not a single-purpose vault demo.
+- **W6 · NPM SDK + integration guide.** `@zkfabric/sdk` has publish metadata,
+  a full README, and [`INTEGRATION.md`](./INTEGRATION.md) — ~60 lines of
+  Solidity + ~40 lines of TypeScript for any dApp to gate on zkFabric. A
+  reference consumer lives in [`examples/integration-example/`](./examples/integration-example).
+- **W7 · Revocation dashboard + atomic KYC ingest.** New `/revoke` page lists
+  every credential from the indexer with three revocation modes.
+  `KYCSBTAdapter.ingestAndRegister` is a new single-call path that atomically
+  validates KYC + registers the hash, putting the adapter on the critical
+  path.
+
+All 65 tests still green (`npx hardhat test`).
+
 ## Roadmap
 
 - [x] Circom selective disclosure circuit with range and set predicates
@@ -649,12 +716,18 @@ npm run dev
 - [x] KYCSBTAdapter — HashKey KYC SBT integration
 - [x] ZKTLSAdapter — Reclaim Protocol zkTLS attestation
 - [x] GatedVault demo (ERC-4626 with ZK access tiers)
-- [x] PrivateGovernance demo (anonymous voting)
-- [x] TypeScript SDK (`@zkfabric/sdk`)
-- [x] Next.js demo app (3 screens)
+- [x] PrivateGovernance demo (anonymous voting, full UI)
+- [x] TypeScript SDK (`@zkfabric/sdk`) with publish metadata
+- [x] Next.js demo app (5 screens: Issue, Prove, Vault, Governance, Revoke)
 - [x] Deploy to HashKey Chain Testnet
+- [x] Event-sourced indexer replacing localStorage single-point-of-failure
+- [x] BIP39-recoverable identities
+- [x] Real Reclaim attestor backend signer
+- [x] On-chain revocation enforcement (root + nullifier)
+- [x] Threshold multisig registry ownership
+- [x] `INTEGRATION.md` + reference consumer contract
+- [ ] Multi-party trusted setup ceremony (contributor transcript)
 - [ ] Security audit
-- [ ] Multi-issuer governance (who can add credential adapters)
 - [ ] Credential expiration and auto-renewal circuits
 - [ ] Cross-chain proof relay (verify HashKey proofs on Ethereum)
 - [ ] Mobile SDK (React Native)
