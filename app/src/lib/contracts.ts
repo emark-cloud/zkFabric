@@ -169,6 +169,58 @@ export const GATED_VAULT_ABI = [
   },
 ] as const;
 
+export const REVOCATION_ABI = [
+  {
+    name: "revoke",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "credentialHash", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    name: "restore",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "credentialHash", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    name: "isRevoked",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "credentialHash", type: "uint256" }],
+    outputs: [{ type: "bool" }],
+  },
+  {
+    name: "revokeRoot",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "root", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    name: "isRootRevoked",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "root", type: "uint256" }],
+    outputs: [{ type: "bool" }],
+  },
+  {
+    name: "revokeNullifier",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "nullifier", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    name: "isNullifierRevoked",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "nullifier", type: "uint256" }],
+    outputs: [{ type: "bool" }],
+  },
+] as const;
+
 export const GOVERNANCE_ABI = [
   {
     name: "proposalCount",

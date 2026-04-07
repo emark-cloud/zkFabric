@@ -79,6 +79,35 @@ contract KYCSBTAdapter is ICredentialAdapter {
         registry.registerCredential(identityCommitment, _credentialHash);
     }
 
+    /// @notice Atomically validate KYC status and register the (off-chain computed)
+    ///         credential hash in a single transaction.
+    /// @dev Preferred entry point for dApp frontends — replaces the two-call dance of
+    ///      `ingestCredential` + `registerComputedCredential` with a single on-chain call
+    ///      that puts the adapter on the critical path. Poseidon is still computed
+    ///      off-chain because on-chain hashing with 9 inputs would be prohibitively
+    ///      expensive (~100k gas per call, dwarfing the rest of the flow).
+    function ingestAndRegister(
+        address user,
+        uint256 identityCommitment,
+        uint256 _credentialHash
+    ) external returns (uint256) {
+        require(_credentialHash != 0, "KYCSBTAdapter: zero hash");
+
+        (, uint8 level, uint8 status,) = IKycSBTReader(kycSBT).getKycInfo(user);
+        require(status == 1, "KYCSBTAdapter: KYC not approved");
+        require(level >= 1, "KYCSBTAdapter: no KYC level");
+
+        emit KycDataRead(user, level, status);
+
+        if (!registry.isIdentityRegistered(identityCommitment)) {
+            registry.registerIdentity(identityCommitment);
+        }
+        registry.registerCredential(identityCommitment, _credentialHash);
+
+        emit CredentialIngested(user, identityCommitment, _credentialHash);
+        return _credentialHash;
+    }
+
     /// @inheritdoc ICredentialAdapter
     function credentialType() external pure override returns (uint256) {
         return CREDENTIAL_TYPE_KYC_SBT;

@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/prove", label: "Prove" },
   { href: "/vault", label: "Vault" },
   { href: "/governance", label: "Governance" },
+  { href: "/revoke", label: "Revoke" },
 ];
 
 export function NavBar() {
