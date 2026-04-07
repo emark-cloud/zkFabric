@@ -209,41 +209,66 @@ export default function IssuePage() {
     }
   }, [identity, kycInfo, tree, address, ingestOnChain, persistCredential]);
 
-  const handleIssueZktls = useCallback(() => {
-    if (!identity || !tree) return;
+  const handleIssueZktls = useCallback(async () => {
+    if (!identity || !tree || !address) return;
     setIsProcessing(true);
-    setStatus("Creating zkTLS attestation credential...");
+    setStatus("Requesting signed attestation from zkFabric attestor...");
 
     try {
-      const attestation: ZKTLSAttestation = {
-        provider: "github-account-age",
-        primaryAttribute: 3n,
-        timestamp: BigInt(Math.floor(Date.now() / 1000)),
-        jurisdictionCode: 0n,
-        auxiliaryData1: 2019n,
-        auxiliaryData2: 0n,
+      // POST to the backend attestor. In production the body would include a
+      // real Reclaim proof from the Reclaim mobile/web SDK; for the demo the
+      // attestor runs in ATTESTOR_DEV_MODE=1 and skips Reclaim verification.
+      const attestorUrl =
+        process.env.NEXT_PUBLIC_ATTESTOR_URL ?? "http://localhost:8788";
+      const res = await fetch(`${attestorUrl}/attest`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          user: address,
+          identityCommitment: identity.commitment.toString(),
+          provider: "github-account-age",
+          primaryAttribute: "3",
+          jurisdictionCode: "0",
+          auxiliaryData1: "2019",
+          auxiliaryData2: "0",
+          // reclaimProof: <from Reclaim SDK in prod>
+        }),
+      });
+      if (!res.ok) throw new Error(`attestor returned ${res.status}`);
+      const { slots: slotStrs, attestationData, signature } = (await res.json()) as {
+        slots: string[];
+        attestationData: `0x${string}`;
+        signature: `0x${string}`;
       };
-
-      const slots = packZktlsSlots(attestation, 2n);
+      const slots = slotStrs.map((s) => BigInt(s));
       const credentialHash = computeCredentialHash(identity.commitment, slots);
 
+      setStatus("Submitting signed attestation on-chain...");
+      registerZktlsHash({
+        address: CONTRACTS.zktlsAdapter,
+        abi: ZKTLS_ADAPTER_ABI,
+        functionName: "submitAttestation",
+        args: [address, identity.commitment, attestationData, signature],
+      });
+
       const credential: Credential = {
-        id: `zktls-demo-${Date.now()}`,
+        id: `zktls-${Date.now()}`,
         type: CredentialType.ZKTLS,
         identityCommitment: identity.commitment,
         credentialHash,
         slots,
         createdAt: Date.now(),
       };
-
       persistCredential(credential, tree);
-      setStatus("zkTLS credential created! Updating Merkle root on-chain — please confirm the transaction...");
+      setStatus(
+        "zkTLS attestation signed off-chain and submitted. Confirm both transactions (submitAttestation + updateRoot) to finish."
+      );
     } catch (err: any) {
       setStatus("Error: " + err.message);
     } finally {
       setIsProcessing(false);
     }
-  }, [identity, tree, persistCredential, registerZktlsHash]);
+  }, [identity, tree, address, persistCredential, registerZktlsHash]);
 
   useEffect(() => {
     if (ingestConfirmed && credentials.length > 0) {
@@ -565,8 +590,10 @@ export default function IssuePage() {
                 </div>
               </div>
               <p className="text-xs text-[#3f3f46]">
-                In production, Reclaim Protocol fetches a signed attestation from the data provider.
-                This demo uses simulated attestation data.
+                Claim is verified by the zkFabric attestor service (`@zkfabric/attestor`),
+                which calls Reclaim Protocol server-side and signs the credential slots with
+                an ECDSA key `ZKTLSAdapter` trusts on-chain. Set `NEXT_PUBLIC_ATTESTOR_URL`
+                to point at your running attestor.
               </p>
             </div>
           </section>
