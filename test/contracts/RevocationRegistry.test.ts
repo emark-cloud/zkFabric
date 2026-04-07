@@ -49,4 +49,48 @@ describe("RevocationRegistry", function () {
       "RevocationRegistry: already revoked"
     );
   });
+
+  it("should revoke and restore Merkle roots", async function () {
+    await revocation.authorizeIssuer(issuer.address);
+    const root = 999n;
+
+    await expect(revocation.connect(issuer).revokeRoot(root))
+      .to.emit(revocation, "RootRevoked")
+      .withArgs(root, issuer.address);
+    expect(await revocation.isRootRevoked(root)).to.be.true;
+
+    await expect(revocation.connect(issuer).restoreRoot(root))
+      .to.emit(revocation, "RootRestored")
+      .withArgs(root, issuer.address);
+    expect(await revocation.isRootRevoked(root)).to.be.false;
+  });
+
+  it("should reject zero root and double root revocation", async function () {
+    await expect(revocation.revokeRoot(0)).to.be.revertedWith(
+      "RevocationRegistry: zero root"
+    );
+    await revocation.revokeRoot(7);
+    await expect(revocation.revokeRoot(7)).to.be.revertedWith(
+      "RevocationRegistry: root already revoked"
+    );
+  });
+
+  it("should revoke and restore nullifiers", async function () {
+    await revocation.authorizeIssuer(issuer.address);
+    const nullifier = 42n;
+
+    await expect(revocation.connect(issuer).revokeNullifier(nullifier))
+      .to.emit(revocation, "NullifierRevoked")
+      .withArgs(nullifier, issuer.address);
+    expect(await revocation.isNullifierRevoked(nullifier)).to.be.true;
+
+    await revocation.connect(issuer).restoreNullifier(nullifier);
+    expect(await revocation.isNullifierRevoked(nullifier)).to.be.false;
+  });
+
+  it("should reject unauthorized root revocation", async function () {
+    await expect(
+      revocation.connect(user).revokeRoot(123)
+    ).to.be.revertedWith("RevocationRegistry: not authorized");
+  });
 });

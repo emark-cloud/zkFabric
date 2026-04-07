@@ -18,6 +18,7 @@ import "../interfaces/IZKFabric.sol";
 contract ZKFabricVerifier is IZKFabric {
     Groth16Verifier public immutable groth16Verifier;
     address public registry;
+    address public revocationRegistry;
     address public owner;
 
     /// @notice Nullifier => used. Prevents replay of proofs.
@@ -36,6 +37,12 @@ contract ZKFabricVerifier is IZKFabric {
     /// @notice Set the registry address (for root validation).
     function setRegistry(address _registry) external onlyOwner {
         registry = _registry;
+    }
+
+    /// @notice Set the revocation registry address. When set, the verifier rejects any
+    ///         proof whose merkleRoot or nullifier has been marked revoked.
+    function setRevocationRegistry(address _revocationRegistry) external onlyOwner {
+        revocationRegistry = _revocationRegistry;
     }
 
     /// @inheritdoc IZKFabric
@@ -66,6 +73,18 @@ contract ZKFabricVerifier is IZKFabric {
             require(
                 IZKFabricRegistry(registry).isValidRoot(merkleRoot),
                 "ZKFabricVerifier: invalid merkle root"
+            );
+        }
+
+        // Check revocation status (if revocation registry is set)
+        if (revocationRegistry != address(0)) {
+            require(
+                !IRevocationRegistry(revocationRegistry).isRootRevoked(merkleRoot),
+                "ZKFabricVerifier: root revoked"
+            );
+            require(
+                !IRevocationRegistry(revocationRegistry).isNullifierRevoked(nullifierHash),
+                "ZKFabricVerifier: nullifier revoked"
             );
         }
 
@@ -108,4 +127,10 @@ contract ZKFabricVerifier is IZKFabric {
 /// @dev Minimal interface for registry root validation (avoids circular import)
 interface IZKFabricRegistry {
     function isValidRoot(uint256 root) external view returns (bool);
+}
+
+/// @dev Minimal interface for revocation lookups (avoids circular import)
+interface IRevocationRegistry {
+    function isRootRevoked(uint256 root) external view returns (bool);
+    function isNullifierRevoked(uint256 nullifier) external view returns (bool);
 }

@@ -41,6 +41,10 @@ async function main() {
   await verifier.setRegistry(registryAddr);
   console.log("  Linked verifier → registry");
 
+  // Link verifier to revocation registry (enforces root + nullifier revocation)
+  await verifier.setRevocationRegistry(revocationAddr);
+  console.log("  Linked verifier → revocation registry");
+
   // 5. Deploy MockKycSBT + KYCSBTAdapter
   console.log("[5/7] Deploying MockKycSBT + KYCSBTAdapter...");
   const MockKycSBT = await ethers.getContractFactory("MockKycSBT");

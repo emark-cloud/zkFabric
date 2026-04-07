@@ -221,4 +221,78 @@ describe("End-to-End Integration", function () {
         )
     ).to.be.revertedWith("ZKFabricVerifier: nullifier already used");
   });
+
+  it("should reject proofs against revoked roots", async function () {
+    // Wire a fresh RevocationRegistry into the verifier
+    const RevReg = await ethers.getContractFactory("RevocationRegistry");
+    const revocationRegistry = await RevReg.deploy();
+    await revocationRegistry.waitForDeployment();
+    await verifier.setRevocationRegistry(await revocationRegistry.getAddress());
+
+    // Build a proof under a fresh scope (avoid nullifier collision with prior tests)
+    const tree = new IMT(poseidon2, TREE_DEPTH, 0n, 2);
+    tree.insert(credentialHash);
+    await registry.updateRoot(tree.root);
+
+    const BN128_FIELD_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+    const revocationScope = BigInt(
+      ethers.keccak256(ethers.toUtf8Bytes("zkfabric-revocation-test"))
+    ) % BN128_FIELD_PRIME;
+    const nullifierHash = poseidon2([privateKey, revocationScope]);
+    const merkleProof = tree.createProof(0);
+
+    const input = {
+      privateKey: privateKey.toString(),
+      credentialData: slots.map(String),
+      merkleSiblings: merkleProof.siblings.map((s: any) =>
+        (Array.isArray(s) ? s[0] : s).toString()
+      ),
+      merklePathIndices: merkleProof.pathIndices.map(String),
+      merkleRoot: BigInt(tree.root).toString(),
+      nullifierHash: nullifierHash.toString(),
+      scope: revocationScope.toString(),
+      predicateTypes: ["1", "2", "1", "0", "0", "0", "0", "0"],
+      predicateValues: ["1", "3", "1", "0", "0", "0", "0", "0"],
+      predicateSets: Array.from({ length: NUM_SLOTS }, () =>
+        new Array(SET_SIZE).fill("0")
+      ),
+    };
+
+    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+      input,
+      WASM,
+      ZKEY
+    );
+
+    const proofArray = [
+      BigInt(proof.pi_a[0]),
+      BigInt(proof.pi_a[1]),
+      BigInt(proof.pi_b[0][1]),
+      BigInt(proof.pi_b[0][0]),
+      BigInt(proof.pi_b[1][1]),
+      BigInt(proof.pi_b[1][0]),
+      BigInt(proof.pi_c[0]),
+      BigInt(proof.pi_c[1]),
+    ];
+
+    // Issuer revokes the root
+    await revocationRegistry.revokeRoot(BigInt(tree.root));
+
+    // Direct verifier call should now revert
+    await expect(
+      verifier.verifyAndRecord(proofArray, publicSignals.map(BigInt), revocationScope)
+    ).to.be.revertedWith("ZKFabricVerifier: root revoked");
+
+    // Restore root, then revoke the nullifier instead
+    await revocationRegistry.restoreRoot(BigInt(tree.root));
+    await revocationRegistry.revokeNullifier(nullifierHash);
+
+    await expect(
+      verifier.verifyAndRecord(proofArray, publicSignals.map(BigInt), revocationScope)
+    ).to.be.revertedWith("ZKFabricVerifier: nullifier revoked");
+
+    // Cleanup: unwire revocation registry so other test files / suites are unaffected
+    await revocationRegistry.restoreNullifier(nullifierHash);
+    await verifier.setRevocationRegistry(ethers.ZeroAddress);
+  });
 });
