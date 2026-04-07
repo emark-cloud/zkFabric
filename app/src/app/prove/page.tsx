@@ -26,8 +26,7 @@ export default function ProvePage() {
   const [selectedCredId, setSelectedCredId] = useState<string | null>(null);
   const [predicates, setPredicates] = useState<Predicate[]>([]);
   const SCOPE_PRESETS = [
-    { label: "Gated Vault", value: "15643852484002470125864880165725370199200481980538641076792348010267222421912" },
-    { label: "Governance", value: "11745176082972158675028345418419896051370761533910634985613910102089869106550" },
+    { label: "Gated Vault", value: "2472064934873437441964307081633511463815357146900708688403104743157998254321" },
     { label: "Custom", value: "" },
   ];
   const [scope, setScope] = useState(SCOPE_PRESETS[0].value);
