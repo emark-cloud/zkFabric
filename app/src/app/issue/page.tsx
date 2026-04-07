@@ -99,8 +99,18 @@ export default function IssuePage() {
     (credential: Credential, currentTree: CredentialTree) => {
       const leafIndex = currentTree.addCredential(credential.credentialHash);
       const newLeafIndices = new Map(leafIndices);
+
+      // Remove old credential of the same type so we don't get duplicates
+      const oldCred = credentials.find((c) => c.type === credential.type);
+      if (oldCred) {
+        newLeafIndices.delete(oldCred.id);
+      }
+
       newLeafIndices.set(credential.id, leafIndex);
-      const newCredentials = [...credentials, credential];
+      const newCredentials = [
+        ...credentials.filter((c) => c.type !== credential.type),
+        credential,
+      ];
       setCredentials(newCredentials);
       setTree(currentTree);
       setLeafIndices(newLeafIndices);
