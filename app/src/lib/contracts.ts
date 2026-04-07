@@ -169,6 +169,58 @@ export const GATED_VAULT_ABI = [
   },
 ] as const;
 
+export const GOVERNANCE_ABI = [
+  {
+    name: "proposalCount",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    name: "proposals",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "uint256" }],
+    outputs: [
+      { name: "description", type: "string" },
+      { name: "yesVotes", type: "uint256" },
+      { name: "noVotes", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "exists", type: "bool" },
+    ],
+  },
+  {
+    name: "createProposal",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "description", type: "string" },
+      { name: "duration", type: "uint256" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    name: "vote",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "proposalId", type: "uint256" },
+      { name: "choice", type: "uint8" },
+      { name: "proof", type: "uint256[8]" },
+      { name: "publicSignals", type: "uint256[]" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "getProposalScope",
+    type: "function",
+    stateMutability: "pure",
+    inputs: [{ name: "proposalId", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
+
 export const MOCK_ERC20_ABI = [
   {
     name: "mint",

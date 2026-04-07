@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { href: "/issue", label: "Issue" },
   { href: "/prove", label: "Prove" },
   { href: "/vault", label: "Vault" },
+  { href: "/governance", label: "Governance" },
 ];
 
 export function NavBar() {
