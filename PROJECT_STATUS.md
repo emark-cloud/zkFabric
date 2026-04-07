@@ -1,6 +1,6 @@
 # zkFabric — Project Status & Comprehensive Overview
 
-**Last Updated:** 2026-04-06
+**Last Updated:** 2026-04-07 (production hardening W1–W3 complete)
 **Author:** emark-cloud (solo developer)
 **Hackathon:** HashKey Chain On-Chain Horizon Hackathon 2026 — ZKID Track ($10K prize pool)
 
@@ -187,33 +187,109 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 15. ✅ External feedback review #2 — verified all contracts via `eth_getCode`, added MIT LICENSE, verified all 10 contracts on Blockscout
 16. ✅ Fixed `fs` module resolution error in browser bundle (dynamic import with webpackIgnore)
 17. ✅ Frontend overhaul — "Cryptographic Noir" design system across all 10 frontend files
+18. ✅ Added KYC self-registration buttons on Issue page (BASIC/ADVANCED/PREMIUM/ULTIMATE via MockKycSBT `setKycInfo`)
+19. ✅ Fixed mint credential button not working when wallet has no KYC set (added `noKyc` fallback check)
+20. ✅ Fixed clipboard copy — added `document.execCommand("copy")` fallback + "Copied!" visual feedback
+21. ✅ Added scope presets on Prove page (Gated Vault, Custom) so users don't need to know the raw scope value
+22. ✅ Fixed vault scope mismatch — contract uses `keccak256("zkfabric-gated-vault-v1")`, not `"zkfabric.vault"`
+23. ✅ Added `setKycInfo` to `KYC_SBT_ABI` in `contracts.ts` for frontend KYC registration
+24. ✅ Added PROJECT_STATUS.md comprehensive project overview
+25. ✅ Fixed vault scope preset — contract uses `keccak256("zkfabric-gated-vault-v1")`, not `"zkfabric.vault"`
+26. ✅ Fixed "invalid merkle root" — frontend never called `updateRoot` on Registry after issuing credentials; added automatic `updateRoot` call in `persistCredential`
+27. ✅ Transferred ZKFabricRegistry ownership from deployer to user wallet so frontend can call `updateRoot`
+28. ✅ Credential deduplication — re-issuing a credential of the same type (KYC/zkTLS) now replaces the old one instead of creating duplicates
 
 ---
 
 ## Where We Are Now
 
-**Current State: All 5 phases complete. Polish and submission prep phase.**
+**Current State: All 5 phases complete. Full frontend flow verified end-to-end on HashKey Chain Testnet.**
 
 - All 57 tests passing (12 circuit + 25 contract + 18 SDK + 2 e2e)
 - All 10 contracts deployed and verified on HashKey Chain Testnet Blockscout
 - Frontend fully functional with both KYC SBT and zkTLS credential issuance
 - "Cryptographic Noir" design applied — JetBrains Mono headings, gradient accents, animations
 - Full demo flow works end-to-end (verified via `scripts/demo-flow.ts`)
-- 7 commits in git history
+- 11 commits in git history
 - MIT LICENSE added
+- **Full frontend flow verified** — Connect wallet → Register KYC → Issue credential → Generate proof → Deposit in vault (all on-chain, all passing)
+- Registry ownership transferred to user wallet (`0xECf5...`) for frontend `updateRoot` calls
 
 ### What's Working
 - Wallet connection via RainbowKit on HashKey Chain Testnet (chain 133)
 - Identity creation with Poseidon commitment
-- KYC SBT credential issuance (demo mode + on-chain via MockKycSBT)
+- KYC self-registration on MockKycSBT from Issue page (BASIC/ADVANCED/PREMIUM/ULTIMATE tiers)
+- KYC SBT credential issuance with automatic on-chain Merkle root update
 - zkTLS attestation credential issuance (demo mode with GitHub account age)
-- Credential persistence in localStorage
+- Credential persistence in localStorage with same-type deduplication
 - Predicate selection with 3 presets + per-slot manual configuration
 - Groth16 proof generation in browser (~3-7 seconds)
-- Proof JSON export/copy
-- Proof-gated vault deposit (747K gas)
+- Proof JSON export/copy with clipboard fallback
+- Scope presets on Prove page (Gated Vault scope pre-filled with correct value)
+- Mock token minting and approval on Vault page
 - On-chain nullifier replay protection
 - Contract source code readable on Blockscout explorer
+
+### Verified on 2026-04-07
+- Full frontend flow tested manually on HashKey Chain Testnet: wallet connect → KYC registration → credential issuance (with on-chain root update) → proof generation (Gated Vault scope) → vault deposit with ZK proof — **all passing**
+
+---
+
+## Production Hardening (2026-04-07 onward)
+
+Beyond the 5-phase hackathon demo, zkFabric is now being hardened against a
+real-product bar. Plan: `/home/emark/.claude/plans/crispy-purring-wozniak.md`.
+
+### W1 — On-chain revocation enforcement ✅
+- `RevocationRegistry` gained root + nullifier revoke/restore with events.
+- `ZKFabricVerifier.verifyAndRecord` now calls `isRootRevoked` and
+  `isNullifierRevoked` before the nullifier write when a registry is wired.
+- `deploy.ts` links verifier → revocation registry automatically.
+- New tests: root/nullifier revoke paths in `RevocationRegistry.test.ts`;
+  e2e test asserts a real Groth16 proof is rejected after `revokeRoot` and
+  after `revokeNullifier` (fresh scope to avoid nullifier collision).
+- **No circuit re-ceremony** — enforcement works entirely at the contract
+  layer by revoking the Merkle root the proof was built against.
+
+### W2 — Event-indexed tree + recoverable identity ✅
+- New `indexer/` package (Hono + viem + tsx) watches
+  `CredentialRegistered` via WebSocket with HTTP-polling fallback,
+  persists leaves to `./data/state.json`, exposes
+  `GET /health`, `GET /leaves`, `GET /root`.
+- `CredentialTree.fromIndexer(url)` hydrates the tree from the indexer;
+  frontend Issue + Prove pages now call `syncTreeFromIndexer()` with
+  localStorage as a fallback cache.
+- BIP39 12-word mnemonic identity via `@scure/bip39`: PBKDF2 seed reduced
+  mod BN128 prime → valid circuit private key. `loadOrCreateMnemonicIdentity`,
+  `restoreFromMnemonic`, and a full-screen backup modal on first creation.
+- localStorage is no longer the source of truth — losing the browser no
+  longer bricks previously-issued credentials.
+
+### W3 — Real Reclaim zkTLS via backend signer ✅
+- New `attestor/` package (Hono + viem + `@reclaimprotocol/js-sdk`):
+  - `POST /attest` verifies a Reclaim proof server-side (dynamic import,
+    `ATTESTOR_DEV_MODE=1` bypass for local demos),
+  - packs 8 credential slots,
+  - ABI-encodes `attestationData`,
+  - signs `keccak256(abi.encodePacked(user, identityCommitment, attestationData))`
+    via EIP-191 — matching `ZKTLSAdapter.submitAttestation`'s recovery path.
+- Frontend Issue → zkTLS tab now POSTs to `NEXT_PUBLIC_ATTESTOR_URL`
+  (default `http://localhost:8788`) and calls `submitAttestation` on-chain
+  instead of fabricating slots in-browser.
+- `scripts/set-attestor.ts` hardhat helper wires the deployed adapter to
+  the new signing address (`ATTESTOR_ADDRESS=0x... npx hardhat run ...`).
+- Smoke-tested locally: `/health` + `/attest` return a valid 65-byte
+  signature against a throwaway key.
+
+### W4 — Multi-sig + UUPS upgradeable contracts ⏳ NEXT
+
+### Still to do
+- W4: UUPS proxies + 2-of-3 Safe multisig ownership of registry + verifier.
+- W5: PrivateGovernance UI (second consumer story).
+- W6: NPM SDK publish + `INTEGRATION.md` + example consumer.
+- W7: Revocation UI + wire `KYCSBTAdapter.ingestCredential` end-to-end.
+- W8 (optional): multi-party trusted setup ceremony with public transcript.
+- W9: demo video + README polish.
 
 ---
 
@@ -231,6 +307,16 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 5. **fs Module in Browser** — `sdk/src/prover.ts` has a `verifyProof` function that uses `require("fs")`. When bundled for the browser via `fabric.ts`, this causes a build error. Fixed by changing to `await import(/* webpackIgnore: true */ "fs")`.
 
 6. **Vault depositWithProof Missing Arg** — The ABI has 4 params (assets, receiver, proof, publicSignals) but the frontend only passed 3. Fixed by adding `address!` as receiver.
+
+7. **Clipboard Copy Silently Failing** — `navigator.clipboard.writeText` was silently failing in some browser contexts (possibly permissions). Added `document.execCommand("copy")` fallback with temporary textarea, plus "Copied!" visual feedback via state.
+
+8. **Mint Credential Button Not Working** — When wallet had no KYC set on MockKycSBT, `kycData` returned level=0/status=0. The `isApproved` check was false and the zero-address check didn't apply (real contract deployed). Fixed by adding `noKyc` check: `!kycInfo || (kycInfo.level === 0 && kycInfo.status === 0)`.
+
+9. **Vault Scope Mismatch** — Prove page defaulted scope to `1`. GatedVault uses `keccak256(abi.encodePacked("zkfabric-gated-vault-v1")) % BN128_FIELD_PRIME`. Initially computed wrong string (`"zkfabric.vault"`) — corrected after reading the actual Solidity source. Added scope presets on Prove page with correct value.
+
+10. **Invalid Merkle Root** — Frontend built a local Merkle tree in localStorage but never called `updateRoot` on the Registry contract. The on-chain verifier's `isValidRoot()` check always failed. Fixed by calling `updateRoot` automatically after each credential issuance, and transferred Registry ownership to the user's wallet so the frontend can make this call.
+
+11. **Duplicate Credentials** — Re-issuing a credential of the same type (KYC or zkTLS) appended to the list instead of replacing. Users saw 2+ credentials of the same type on the Prove page with no way to tell which was latest. Fixed by filtering out old credentials of the same type in `persistCredential`.
 
 ### Minor Issues (Fixed)
 - npm install corruption from concurrent installs — fixed with clean reinstall
@@ -251,10 +337,10 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 ## Next Steps
 
 ### High Priority (Before Submission)
-1. **Record demo video** — 3-5 minute screencast showing end-to-end flow (required by hackathon)
-   - Connect wallet → Issue KYC credential → Issue zkTLS credential → Generate proof → Deposit in vault
-2. **Push more granular commits** — Current history has only 7 commits for a full project; judges review git history
-3. **Test full flow in browser** — Walk through all 4 pages manually, verify on HashKey Chain Testnet with real transactions
+1. ~~**Complete vault deposit test**~~ — **DONE** (2026-04-07). Full flow verified on testnet.
+2. **Record demo video** — 3-5 minute screencast showing end-to-end flow (required by hackathon)
+   - Connect wallet → Register KYC → Issue credential → Generate proof (Gated Vault scope) → Deposit in vault
+3. **Push more granular commits** — Current history has 11 commits; consider adding more for review
 
 ### Medium Priority (Polish)
 4. **Improve mobile responsiveness** — NavBar links hidden on mobile but no hamburger menu
@@ -288,12 +374,20 @@ All deployed on **HashKey Chain Testnet (Chain ID: 133)** and **verified on Bloc
 | PrivateGovernance | `0xD8B7D340a9e4CA95c33B638E1F36987f988d5237` | [View](https://testnet-explorer.hsk.xyz/address/0xD8B7D340a9e4CA95c33B638E1F36987f988d5237#code) |
 
 **Deployer Address:** `0xB4CA33B33EEA1E0D6F39Aff7761709a9D6Ba350e`
+**Registry Owner:** `0xECf5e30F091D1db7c7b0ef26634a71d46DC9Bb25` (transferred from deployer for frontend `updateRoot` calls)
 
 ---
 
 ## Commit History
 
 ```
+3bb3738 Add Reclaim attestor service and wire zkTLS issuance
+32dad3d Add indexer service and BIP39 recoverable identity
+5b32818 Enforce credential revocation in ZKFabricVerifier
+f6fe815 Replace duplicate credentials of same type on re-issue
+45840a7 Add on-chain Merkle root update after credential issuance
+c433a95 Fix vault scope preset to match actual contract value
+6ac7333 Fix scope mismatch, clipboard copy, and KYC registration UX
 c378677 Overhaul frontend with Cryptographic Noir design system
 da962e0 Fix fs module resolution error in browser bundle
 21be542 Add MIT license and verify all contracts on Blockscout
@@ -450,7 +544,8 @@ CLAUDE.md                              # Full development guide + chain details 
 | Date | Milestone |
 |---|---|
 | 2026-03-10 | Hackathon start (clean git history from here) |
-| 2026-04-06 | **TODAY** — All 5 phases complete, frontend overhauled |
+| 2026-04-06 | All 5 phases complete, frontend overhauled, PROJECT_STATUS.md created |
+| 2026-04-07 | **TODAY** — Fixed scope mismatch, invalid merkle root, credential dedup, KYC registration UX, clipboard fix |
 | 2026-04-14 | Demo submission opens + project pre-screening |
 | 2026-04-15 | Registration deadline |
 | 2026-04-16 | Official pitch |
