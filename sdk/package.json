@@ -1,12 +1,35 @@
 {
   "name": "@zkfabric/sdk",
   "version": "0.1.0",
-  "description": "TypeScript SDK for zkFabric — zero-knowledge selective-disclosure identity",
+  "description": "TypeScript SDK for zkFabric — zero-knowledge selective-disclosure identity on HashKey Chain",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emark-cloud/zkFabric.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://github.com/emark-cloud/zkFabric#readme",
+  "bugs": {
+    "url": "https://github.com/emark-cloud/zkFabric/issues"
+  },
+  "keywords": [
+    "zk",
+    "zero-knowledge",
+    "groth16",
+    "circom",
+    "identity",
+    "selective-disclosure",
+    "hashkey",
+    "ethereum",
+    "privacy",
+    "kyc",
+    "zktls"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
     "@scure/bip39": "^1.3.0",
@@ -19,7 +42,11 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "README.md"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }
