@@ -60,6 +60,13 @@ export const REGISTRY_ABI = [
     inputs: [{ name: "root", type: "uint256" }],
     outputs: [{ type: "bool" }],
   },
+  {
+    name: "updateRoot",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "newRoot", type: "uint256" }],
+    outputs: [],
+  },
 ] as const;
 
 export const VERIFIER_ABI = [

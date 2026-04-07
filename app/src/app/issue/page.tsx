@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { CONTRACTS, KYC_SBT_ABI, KYC_ADAPTER_ABI, ZKTLS_ADAPTER_ABI } from "@/lib/contracts";
+import { CONTRACTS, KYC_SBT_ABI, KYC_ADAPTER_ABI, ZKTLS_ADAPTER_ABI, REGISTRY_ABI } from "@/lib/contracts";
 import {
   createIdentity,
   computeCredentialHash,
@@ -69,6 +69,10 @@ export default function IssuePage() {
   const { writeContract: registerZktlsHash, data: zktlsRegisterTxHash } = useWriteContract();
   const { isSuccess: zktlsRegisterConfirmed } = useWaitForTransactionReceipt({ hash: zktlsRegisterTxHash });
 
+  // Update Merkle root on-chain
+  const { writeContract: updateRoot, data: updateRootTxHash } = useWriteContract();
+  const { isSuccess: rootUpdated } = useWaitForTransactionReceipt({ hash: updateRootTxHash });
+
   // Set KYC on MockKycSBT
   const { writeContract: setKyc, data: setKycTxHash } = useWriteContract();
   const { isSuccess: setKycConfirmed } = useWaitForTransactionReceipt({ hash: setKycTxHash });
@@ -103,9 +107,19 @@ export default function IssuePage() {
       saveCredentials(newCredentials);
       saveTree(currentTree);
       saveLeafIndices(newLeafIndices);
+
+      // Update Merkle root on-chain so proofs verify
+      const root = currentTree.getRoot();
+      updateRoot({
+        address: CONTRACTS.registry,
+        abi: REGISTRY_ABI,
+        functionName: "updateRoot",
+        args: [root],
+      });
+
       return newCredentials;
     },
-    [credentials, leafIndices]
+    [credentials, leafIndices, updateRoot]
   );
 
   const handleIssueCredential = useCallback(async () => {
@@ -127,17 +141,7 @@ export default function IssuePage() {
       };
 
       persistCredential(credential, tree);
-      setStatus("Credential created locally! Hash: " + credentialHash.toString().slice(0, 20) + "...");
-
-      if (CONTRACTS.kycAdapter !== "0x0000000000000000000000000000000000000000" && address) {
-        setStatus("Registering on-chain via KYCSBTAdapter...");
-        ingestOnChain({
-          address: CONTRACTS.kycAdapter,
-          abi: KYC_ADAPTER_ABI,
-          functionName: "ingestCredential",
-          args: [address, identity.commitment],
-        });
-      }
+      setStatus("Credential created! Updating Merkle root on-chain — please confirm the transaction...");
     } catch (err: any) {
       setStatus("Error: " + err.message);
     } finally {
@@ -173,17 +177,7 @@ export default function IssuePage() {
       };
 
       persistCredential(credential, tree);
-      setStatus("zkTLS credential created! Hash: " + credentialHash.toString().slice(0, 20) + "...");
-
-      if (CONTRACTS.zktlsAdapter !== "0x0000000000000000000000000000000000000000") {
-        setStatus("Registering credential hash on-chain via ZKTLSAdapter...");
-        registerZktlsHash({
-          address: CONTRACTS.zktlsAdapter,
-          abi: ZKTLS_ADAPTER_ABI,
-          functionName: "registerComputedCredential",
-          args: [identity.commitment, credentialHash],
-        });
-      }
+      setStatus("zkTLS credential created! Updating Merkle root on-chain — please confirm the transaction...");
     } catch (err: any) {
       setStatus("Error: " + err.message);
     } finally {
@@ -211,6 +205,10 @@ export default function IssuePage() {
   useEffect(() => {
     if (zktlsRegisterConfirmed) setStatus("zkTLS credential registered on-chain!");
   }, [zktlsRegisterConfirmed]);
+
+  useEffect(() => {
+    if (rootUpdated) setStatus("Merkle root updated on-chain! You can now generate proofs on the Prove page.");
+  }, [rootUpdated]);
 
   if (!isConnected) {
     return (
