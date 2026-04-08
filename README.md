@@ -354,7 +354,7 @@ const fabric = new ZKFabric({
   chainId: 133,
   rpcUrl: 'https://testnet.hsk.xyz',
   registryAddress: '0xa1708C934175Bf7EaC25220D560BE0C681725957', // ZKFabricRegistry
-  verifierAddress: '0x65EF8Ad82EBfD0670a6086222Fe6CafCeE7b556D', // ZKFabricVerifier
+  verifierAddress: '0xd49cA44645E21076dcd83F285D23c99AbeB6D299', // ZKFabricVerifier
 });
 
 // Define what you need to know (not WHO they are)
@@ -659,13 +659,13 @@ npm run dev
 | `Groth16Verifier` | `0x3a442161cb51555bab8F59351e5E1704e8200506` | [View](https://testnet-explorer.hsk.xyz/address/0x3a442161cb51555bab8F59351e5E1704e8200506) |
 | `ZKFabricRegistry` | `0xa1708C934175Bf7EaC25220D560BE0C681725957` | [View](https://testnet-explorer.hsk.xyz/address/0xa1708C934175Bf7EaC25220D560BE0C681725957) |
 | `RevocationRegistry` | `0xfC9f91c305dfB69861bB1C7DD9777b4784FeCC8E` | [View](https://testnet-explorer.hsk.xyz/address/0xfC9f91c305dfB69861bB1C7DD9777b4784FeCC8E) |
-| `ZKFabricVerifier` | `0x65EF8Ad82EBfD0670a6086222Fe6CafCeE7b556D` | [View](https://testnet-explorer.hsk.xyz/address/0x65EF8Ad82EBfD0670a6086222Fe6CafCeE7b556D) |
+| `ZKFabricVerifier` | `0xd49cA44645E21076dcd83F285D23c99AbeB6D299` | [View](https://testnet-explorer.hsk.xyz/address/0xd49cA44645E21076dcd83F285D23c99AbeB6D299) |
 | `MockKycSBT` | `0x335C915Fa62eeBF9804a4398bb85Cd370B333850` | [View](https://testnet-explorer.hsk.xyz/address/0x335C915Fa62eeBF9804a4398bb85Cd370B333850) |
 | `KYCSBTAdapter` | `0x3AfBFC76f49A4D466D03775B371a4F6142c6A194` | [View](https://testnet-explorer.hsk.xyz/address/0x3AfBFC76f49A4D466D03775B371a4F6142c6A194) |
 | `ZKTLSAdapter` | `0x310581957E11589F641199C3F7571A8eddEF38c8` | [View](https://testnet-explorer.hsk.xyz/address/0x310581957E11589F641199C3F7571A8eddEF38c8) |
 | `MockERC20` | `0x6670bB42279832548E976Fc9f2ddEbA6A03539F8` | [View](https://testnet-explorer.hsk.xyz/address/0x6670bB42279832548E976Fc9f2ddEbA6A03539F8) |
-| `GatedVault` | `0xc1F270f798e1fC89F382ca6C605763fbd00297bb` | [View](https://testnet-explorer.hsk.xyz/address/0xc1F270f798e1fC89F382ca6C605763fbd00297bb) |
-| `PrivateGovernance` | `0xD8B7D340a9e4CA95c33B638E1F36987f988d5237` | [View](https://testnet-explorer.hsk.xyz/address/0xD8B7D340a9e4CA95c33B638E1F36987f988d5237) |
+| `GatedVault` | `0x6C1F9466db7Bc2364b0baC051E73421d5b75354B` | [View](https://testnet-explorer.hsk.xyz/address/0x6C1F9466db7Bc2364b0baC051E73421d5b75354B) |
+| `PrivateGovernance` | `0x2D036e311A6f11f8ABd191276Fd381Df55fbE224` | [View](https://testnet-explorer.hsk.xyz/address/0x2D036e311A6f11f8ABd191276Fd381Df55fbE224) |
 
 ---
 

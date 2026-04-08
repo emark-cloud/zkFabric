@@ -65,7 +65,7 @@ contract MyGatedApp {
         uint256(keccak256(abi.encodePacked("my-dapp-v1"))) % BN128_FIELD_PRIME;
 
     // HashKey Chain Testnet deployment of ZKFabricVerifier.
-    address constant ZK_FABRIC = 0x65EF8Ad82EBfD0670a6086222Fe6CafCeE7b556D;
+    address constant ZK_FABRIC = 0xd49cA44645E21076dcd83F285D23c99AbeB6D299;
 
     event GatedActionPerformed(uint256 indexed nullifier);
 

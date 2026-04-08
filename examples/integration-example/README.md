@@ -33,7 +33,7 @@ npx hardhat run scripts/call-example.ts --network hashkeyTestnet
 ```
 
 The consumer calls the live `ZKFabricVerifier` at
-`0x65EF8Ad82EBfD0670a6086222Fe6CafCeE7b556D`, so you don't need to redeploy
+`0xd49cA44645E21076dcd83F285D23c99AbeB6D299`, so you don't need to redeploy
 any zkFabric infrastructure.
 
 See `INTEGRATION.md` at the repo root for the full walkthrough.

@@ -167,12 +167,12 @@ value stays inside the proof.
 | ------------------- | -------------------------------------------- |
 | Groth16Verifier     | `0x3a442161cb51555bab8f59351e5e1704e8200506` |
 | ZKFabricRegistry    | `0xa1708C934175Bf7EaC25220D560BE0C681725957` |
-| ZKFabricVerifier    | `0x65EF8Ad82EBfD0670a6086222Fe6CafCeE7b556D` |
+| ZKFabricVerifier    | `0xd49cA44645E21076dcd83F285D23c99AbeB6D299` |
 | RevocationRegistry  | `0xfC9f91c305dfB69861bB1C7DD9777b4784FeCC8E` |
 | KYCSBTAdapter       | `0x3AfBFC76f49A4D466D03775B371a4F6142c6A194` |
 | ZKTLSAdapter        | `0x310581957E11589F641199C3F7571A8eddEF38c8` |
-| GatedVault          | `0xc1F270f798e1fC89F382ca6C605763fbd00297bb` |
-| PrivateGovernance   | `0xD8B7D340a9e4CA95c33B638E1F36987f988d5237` |
+| GatedVault          | `0x6C1F9466db7Bc2364b0baC051E73421d5b75354B` |
+| PrivateGovernance   | `0x2D036e311A6f11f8ABd191276Fd381Df55fbE224` |
 
 Full deployment, circuit artifacts, and an integration walkthrough live in the
 repo: <https://github.com/emark-cloud/zkFabric>.
