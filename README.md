@@ -438,7 +438,7 @@ contract MyDeFiVault {
 
 ## Demo Application
 
-The hackathon demo has three screens that demonstrate the complete flow:
+The hackathon demo has five screens that demonstrate the complete flow:
 
 ### Screen 1: Credential Issuer
 
@@ -539,7 +539,9 @@ zkfabric/
 │   │   ├── page.tsx                # Landing / connect wallet
 │   │   ├── issue/page.tsx          # Screen 1: Credential Issuer
 │   │   ├── prove/page.tsx          # Screen 2: Proof Composer
-│   │   └── vault/page.tsx          # Screen 3: Gated RWA Vault
+│   │   ├── vault/page.tsx          # Screen 3: Gated RWA Vault
+│   │   ├── governance/page.tsx     # Screen 4: Anonymous Governance
+│   │   └── revoke/page.tsx         # Screen 5: Revocation Dashboard
 │   ├── src/components/
 │   │   ├── NavBar.tsx              # Navigation + wallet connect
 │   │   ├── CredentialCard.tsx      # Credential display
@@ -562,19 +564,24 @@ zkfabric/
 ├── scripts/
 │   ├── deploy.ts                   # Deploy all contracts to testnet
 │   ├── deploy-multisig.ts          # Deploy 2-of-N multisig + transfer ownership
+│   ├── redeploy-verifier.ts        # Redeploy verifier + cascade consumers
+│   ├── redeploy-revocation.ts      # Redeploy RevocationRegistry + rewire
+│   ├── smoke-revocation.ts         # Live testnet W1 revocation smoke test
 │   ├── set-attestor.ts             # Wire ZKTLSAdapter to attestor signing key
+│   ├── force-ipv4.cjs              # WSL2 IPv6 workaround for Cloudflare RPC
 │   ├── setup-ceremony.sh           # Groth16 trusted setup (Powers of Tau)
 │   └── demo-flow.ts                # End-to-end demo script
 │
 ├── test/
-│   ├── circuits/                   # 30 circuit tests
+│   ├── circuits/                   # 12 circuit tests
 │   │   ├── hello_world.test.ts
 │   │   ├── sub_circuits.test.ts
 │   │   └── selective_disclosure.test.ts
-│   ├── contracts/                  # 25 contract tests
+│   ├── contracts/                  # 28 contract tests
 │   │   ├── ZKFabricRegistry.test.ts
 │   │   ├── KYCSBTAdapter.test.ts
-│   │   └── RevocationRegistry.test.ts
+│   │   ├── RevocationRegistry.test.ts
+│   │   └── ZKFabricMultisig.test.ts
 │   └── integration/                # 2 e2e tests
 │       └── e2e.test.ts
 │

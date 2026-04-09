@@ -40,8 +40,10 @@ interface IKycSBT {
 - **Proof System**: Groth16 (client-side proving via WASM, ~200K gas on-chain verification)
 - **Smart Contracts**: Solidity 0.8.28, Hardhat, OpenZeppelin
 - **Merkle Tree**: Standard binary IMT (depth 20, arity 2) via `@zk-kit/imt` with Poseidon hash
-- **Frontend**: Next.js 16, viem v2, wagmi, RainbowKit
-- **SDK**: TypeScript, snarkjs, poseidon-lite, @zk-kit/imt
+- **Frontend**: Next.js 16, viem v2, wagmi, RainbowKit (7 pages: landing, issue, prove, vault, governance, revoke)
+- **SDK**: TypeScript, snarkjs, poseidon-lite, @zk-kit/imt, @scure/bip39 (BIP39 recovery)
+- **Indexer**: Hono + viem WebSocket event watcher, persists to JSON, exposes /leaves /root /health
+- **Attestor**: Hono + @reclaimprotocol/js-sdk, EIP-191 signing for ZKTLSAdapter
 
 ## Key Architecture Decisions
 
@@ -97,7 +99,24 @@ npx hardhat run scripts/deploy.ts --network hashkeyTestnet
 
 # Run frontend
 cd app && npm run dev
+
+# Redeploy verifier + consumers (after contract changes)
+GROTH16=0x... REGISTRY=0x... REVOCATION=0x... MOCK_ERC20=0x... \
+  npx hardhat run scripts/redeploy-verifier.ts --network hashkeyTestnet
+
+# Smoke-test revocation on live testnet
+NODE_OPTIONS="--require ./scripts/force-ipv4.cjs" \
+  npx hardhat run scripts/smoke-revocation.ts --network hashkeyTestnet
+
+# Run indexer
+cd indexer && npm run dev
+
+# Run attestor
+cd attestor && npm run dev
 ```
+
+## WSL2 Network Workaround
+HashKey Chain's Cloudflare-fronted RPC (`testnet.hsk.xyz`) has IPv6/IPv4 routing issues from WSL2. Use `NODE_OPTIONS="--require ./scripts/force-ipv4.cjs"` before any `npx hardhat run ... --network hashkeyTestnet` command. This patches undici and net to force IPv4.
 
 ## External Resources
 - **HashKey Chain Docs**: https://docs.hashkeychain.net
@@ -123,13 +142,14 @@ cd app && npm run dev
 - **Submission Requirements**: GitHub repo with deployed HashKey Chain contract address in README, short demo video, clean git history from hackathon start (Mar 10)
 - **Winners must complete KYC verification**
 
-## Implementation Status (as of 2026-04-06)
+## Implementation Status (as of 2026-04-09)
 - **Phase 0**: COMPLETE — project scaffolding, toolchain, hello-world circuit
 - **Phase 1**: COMPLETE — all sub-circuits + main selective_disclosure circuit (9,993 constraints, 12/12 tests passing), Groth16Verifier.sol auto-generated
-- **Phase 2**: COMPLETE — all smart contracts (Registry, Verifier, RevocationRegistry, KYCSBTAdapter, ZKTLSAdapter, GatedVault, PrivateGovernance, MockKycSBT, MockERC20), 25 contract tests passing
+- **Phase 2**: COMPLETE — all smart contracts (Registry, Verifier, RevocationRegistry, KYCSBTAdapter, ZKTLSAdapter, GatedVault, PrivateGovernance, MockKycSBT, MockERC20), 28 contract tests passing
 - **Phase 3**: COMPLETE — TypeScript SDK (identity, tree, prover, wallet, client, adapters), compiles with zero type errors
-- **Phase 4**: COMPLETE — Next.js 16 frontend (landing, issue, prove, vault pages), RainbowKit + wagmi for HashKey Chain
-- **Phase 5**: COMPLETE — e2e integration tests (2 passing), all 57 tests green, deployed to HashKey Chain Testnet, BN128 field overflow + Groth16 pi_b ordering bugs fixed
+- **Phase 4**: COMPLETE — Next.js 16 frontend (landing, issue, prove, vault, governance, revoke pages), RainbowKit + wagmi for HashKey Chain
+- **Phase 5**: COMPLETE — e2e integration tests (2 passing), all 65 tests green, deployed to HashKey Chain Testnet, BN128 field overflow + Groth16 pi_b ordering bugs fixed
+- **Production Hardening (W1–W7)**: COMPLETE — on-chain revocation enforcement (smoke-tested live), event-indexed tree + BIP39 recovery, Reclaim attestor backend, threshold multisig contract, PrivateGovernance UI, NPM SDK metadata + INTEGRATION.md, revocation dashboard + atomic KYC ingest
 
 ## Research Findings (2026-04-05)
 - **BN128 precompiles**: Confirmed working on OP Stack L2s. Groth16 on-chain verification is safe on HashKey Chain.
@@ -138,5 +158,18 @@ cd app && npm run dev
 - **@zk-kit/imt**: Only beta versions exist (2.0.0-beta.8). API stable: `new IMT(poseidon2, depth, zeroValue, arity)`.
 - **Circom**: 2.2.x exists but 2.1.9 is fine for hackathon. All circomlib templates stable.
 - **snarkjs**: Versions beyond 0.7.6 exist but current version works. No upgrade needed.
-- **Reclaim Protocol**: Uses signature-based attestation (not Groth16). Likely NOT deployed on HashKey Chain testnet. Need mock or self-deploy their verifier.
+- **Reclaim Protocol**: Uses signature-based attestation (not Groth16). NOT deployed on HashKey Chain testnet. Solved via `attestor/` backend that verifies Reclaim proofs server-side and signs for `ZKTLSAdapter.submitAttestation`.
 - **Faucet**: No direct faucet URL confirmed. Docs say bridge Sepolia ETH via HashKey Bridge.
+
+## Deployed Contract Addresses (HashKey Chain Testnet, Chain 133)
+- Groth16Verifier: `0x3a442161cb51555bab8f59351e5e1704e8200506`
+- ZKFabricRegistry: `0xa1708C934175Bf7EaC25220D560BE0C681725957`
+- RevocationRegistry: `0x735680A32A0e5d9d23D7e8e8302F434e7F30428E`
+- ZKFabricVerifier: `0xd49cA44645E21076dcd83F285D23c99AbeB6D299`
+- MockKycSBT: `0x335C915Fa62eeBF9804a4398bb85Cd370B333850`
+- KYCSBTAdapter: `0x3AfBFC76f49A4D466D03775B371a4F6142c6A194`
+- ZKTLSAdapter: `0x310581957E11589F641199C3F7571A8eddEF38c8`
+- MockERC20: `0x6670bB42279832548E976Fc9f2ddEbA6A03539F8`
+- GatedVault: `0x6C1F9466db7Bc2364b0baC051E73421d5b75354B`
+- PrivateGovernance: `0x2D036e311A6f11f8ABd191276Fd381Df55fbE224`
+- Registry Owner: `0xECf5e30F091D1db7c7b0ef26634a71d46DC9Bb25`
