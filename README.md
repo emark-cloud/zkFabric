@@ -13,7 +13,7 @@
 **Contracts:** Deployed on HashKey Chain Testnet (Chain ID: 133) — all 10 core contracts verified on Blockscout
 **Built for:** [HashKey Chain On-Chain Horizon Hackathon 2026](https://dorahacks.io/hackathon/2045) — ZKID Track ($10K Prize Pool)
 **Integration guide:** [`INTEGRATION.md`](./INTEGRATION.md) — ~60 lines of Solidity + ~40 lines of TypeScript to gate any dApp on zkFabric
-**Status:** 65/65 tests passing · BIP39-recoverable identities · on-chain revocation enforcement · event-sourced tree replay · Reclaim-backed zkTLS attestor
+**Status:** 65/65 tests passing · 9-step live testnet E2E verified · BIP39-recoverable identities · on-chain revocation enforcement · event-sourced tree replay · Reclaim-backed zkTLS attestor
 
 ---
 
@@ -102,7 +102,7 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 
 ### System Overview
 
-zkFabric has four layers: credential ingestion, identity commitment, proof generation, and on-chain verification.
+zkFabric has four layers: credential ingestion, identity commitment, proof generation, and on-chain verification. An off-chain indexer replays contract events so credential state is always recoverable — no single browser is a point of failure.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -113,7 +113,8 @@ zkFabric has four layers: credential ingestion, identity commitment, proof gener
 │                │                │                  │                │
 │  KYCSBTAdapter │  Poseidon ID   │  Circom 2.1.9    │  ZKVerifier    │
 │  ZKTLSAdapter  │  Standard IMT  │  Groth16 proofs  │  NullifierReg  │
-│                │  Depth 20      │  Client-side gen │  RevocationReg │
+│  Attestor svc  │  BIP39 recovery│  Client-side gen │  RevocationReg │
+│                │  Event indexer │                  │  Multisig owner│
 ├────────────────┴────────────────┴──────────────────┴────────────────┤
 │                     HashKey Chain (EVM, Chain 133)                   │
 └─────────────────────────────────────────────────────────────────────┘
@@ -133,13 +134,13 @@ contracts/
 │   ├── ZKFabricVerifier.sol         # On-chain Groth16 proof verification
 │   │                                # - Verifies selective disclosure proofs
 │   │                                # - Checks nullifiers (prevents double-proof)
+│   │                                # - Enforces root + nullifier revocation
 │   │                                # - Validates scope (which dApp is asking)
-│   │                                # - Supports batched verification
 │   │
 │   └── RevocationRegistry.sol       # Credential revocation
+│                                    # - Root, nullifier, and credential revocation
+│                                    # - Enforced by ZKFabricVerifier on every proof
 │                                    # - Issuer-controlled revocation list
-│                                    # - Merkle-based revocation checks
-│                                    # - Revoked creds fail proof generation
 │
 ├── adapters/
 │   ├── KYCSBTAdapter.sol            # Reads HashKey's native KYC SBT
@@ -149,7 +150,8 @@ contracts/
 │   │                                # - Emits credential commitment to registry
 │   │
 │   └── ZKTLSAdapter.sol             # Accepts zkTLS attestations
-│                                    # - Verifies attestor ECDSA signatures
+│                                    # - Verifies EIP-191 signatures from attestor backend
+│                                    # - Attestor verifies Reclaim proofs server-side
 │                                    # - Replay protection via attestation IDs
 │                                    # - Maps external claims to credential schema
 │
@@ -164,6 +166,11 @@ contracts/
 │                                    # - ZK proof-based anonymous signals
 │                                    # - One person = one vote via nullifiers
 │                                    # - No wallet linkability
+│
+├── governance/
+│   └── ZKFabricMultisig.sol         # Threshold multisig (2-of-N)
+│                                    # - Owns Registry, Verifier, RevocationRegistry
+│                                    # - No single EOA can update roots or revoke
 │
 └── interfaces/
     ├── IZKFabric.sol                # Core interface for all consumers
@@ -246,7 +253,8 @@ User has HashKey KYC SBT (tier 3, active, ENS: alice.hsk)
                 │  Emits CredentialRegistered event
                 │
                 ▼
-    User stores private credential data locally (browser/device)
+    User stores private credential data locally (encrypted, BIP39-recoverable)
+    Indexer replays CredentialRegistered event → tree is always recoverable
 
 
 PHASE 2: PROOF GENERATION (client-side)
@@ -291,13 +299,14 @@ User submits proof to dApp's smart contract
     GatedVault.depositWithProof(amount, proof, publicSignals)
                 │
                 ▼
-    Calls ZKFabricVerifier.verifyProof(proof, publicSignals)
+    Calls ZKFabricVerifier.verifyAndRecord(proof, publicSignals, scope)
                 │
                 ├─── 1. Groth16 pairing check (proof is valid)
                 ├─── 2. merkleRoot matches current tree root
-                ├─── 3. nullifierHash not in NullifierRegistry
-                ├─── 4. scope matches this contract's scope
-                └─── 5. Register nullifier (prevents replay)
+                ├─── 3. Root not revoked (RevocationRegistry)
+                ├─── 4. Nullifier not revoked or already used
+                ├─── 5. Scope matches this contract's scope
+                └─── 6. Register nullifier (prevents replay)
                 │
                 ▼
     Verification passed → deposit accepted
@@ -486,6 +495,9 @@ All three are enforced by `ZKFabricVerifier.verifyAndRecord` without any circuit
 | **Off-Chain Source** | Reclaim Protocol (zkTLS) | Most mature zkTLS SDK. Supports 300+ data providers. Proof generation is fast (~5s). Falls back gracefully if integration is unstable. |
 | **Frontend** | Next.js 16 + viem v2 + RainbowKit | Standard stack. viem for type-safe contract interactions. RainbowKit for wallet connection. |
 | **Smart Contracts** | Solidity 0.8.28 + Hardhat | Standard. OpenZeppelin for access control and ERC-4626 vault. |
+| **Identity Recovery** | BIP39 mnemonic (`@scure/bip39`) | 12-word seed phrase derives the Poseidon private key. Users back it up once — losing the browser doesn't brick credentials. |
+| **Tree Indexer** | Hono + viem WebSocket watcher | Replays `CredentialRegistered` events from the registry. Exposes `/leaves`, `/root`, `/health`. SDK hydrates from indexer — localStorage is a cache, not the source of truth. |
+| **Registry Ownership** | Threshold multisig (`ZKFabricMultisig.sol`) | 2-of-N on-chain multisig for Registry, Verifier, and RevocationRegistry. No single EOA can update roots or revoke credentials unilaterally. |
 | **Chain** | HashKey Chain Testnet (ID: 133) | Required by hackathon. EVM-compatible, OP Stack based. Testnet HSK via faucet. |
 
 ---
@@ -552,10 +564,14 @@ zkfabric/
 │       └── fabric.ts               # SDK bridge + localStorage persistence
 │
 ├── indexer/                        # Event-sourced Merkle tree indexer
-│   └── src/index.ts                # Hono + viem watcher, /leaves /root /health
+│   └── src/index.ts                # Hono + viem WebSocket watcher
+│                                   # Replays CredentialRegistered events
+│                                   # Exposes /leaves, /root, /health
 │
-├── attestor/                       # Reclaim Protocol zkTLS backend signer
-│   └── src/index.ts                # Hono + @reclaimprotocol/js-sdk + EIP-191 signing
+├── attestor/                       # Reclaim Protocol zkTLS backend
+│   └── src/index.ts                # Hono + @reclaimprotocol/js-sdk
+│                                   # Verifies Reclaim proofs server-side
+│                                   # Signs credential slots with EIP-191
 │
 ├── examples/
 │   └── integration-example/        # Minimal third-party dApp consumer
@@ -567,6 +583,7 @@ zkfabric/
 │   ├── redeploy-verifier.ts        # Redeploy verifier + cascade consumers
 │   ├── redeploy-revocation.ts      # Redeploy RevocationRegistry + rewire
 │   ├── smoke-revocation.ts         # Live testnet W1 revocation smoke test
+│   ├── e2e-testnet.ts              # 9-step live testnet E2E (all contract flows)
 │   ├── set-attestor.ts             # Wire ZKTLSAdapter to attestor signing key
 │   ├── force-ipv4.cjs              # WSL2 IPv6 workaround for Cloudflare RPC
 │   ├── setup-ceremony.sh           # Groth16 trusted setup (Powers of Tau)
@@ -582,7 +599,7 @@ zkfabric/
 │   │   ├── KYCSBTAdapter.test.ts
 │   │   ├── RevocationRegistry.test.ts
 │   │   └── ZKFabricMultisig.test.ts
-│   └── integration/                # 2 e2e tests
+│   └── integration/                # 25 e2e tests
 │       └── e2e.test.ts
 │
 ├── hardhat.config.ts
@@ -676,43 +693,27 @@ npm run dev
 
 ---
 
-## Production Hardening
+## Live Testnet Verification
 
-Beyond the hackathon demo, zkFabric is being pushed toward a real-product bar.
-The workstreams below are all merged on `main` (plan:
-`.claude/plans/crispy-purring-wozniak.md`):
+Every contract interaction the frontend makes has been verified against live HashKey Chain Testnet via `scripts/e2e-testnet.ts`:
 
-- **W1 · On-chain revocation enforcement.** `ZKFabricVerifier.verifyAndRecord`
-  now checks `RevocationRegistry.isRootRevoked` and `isNullifierRevoked` before
-  accepting any proof. Zero circuit changes — enforcement is contract-layer.
-- **W2 · Event-indexed tree + recoverable identity.** New
-  [`indexer/`](./indexer) package replays `CredentialRegistered` events and
-  exposes `/leaves`, `/root`, `/health`. `CredentialTree.fromIndexer()` in the
-  SDK hydrates from it. BIP39 12-word mnemonics via `@scure/bip39` make
-  identities recoverable — losing the browser no longer bricks credentials.
-- **W3 · Real Reclaim zkTLS.** New [`attestor/`](./attestor) Hono service
-  verifies Reclaim proofs server-side via `@reclaimprotocol/js-sdk`, packs 8
-  credential slots, and signs `keccak256(abi.encodePacked(user, commitment,
-  attestationData))` with EIP-191. `ZKTLSAdapter.submitAttestation` recovers
-  the exact attestor address — no mock data on the critical path.
-- **W4 · Threshold multisig ownership.** New
-  [`ZKFabricMultisig.sol`](./contracts/governance/ZKFabricMultisig.sol)
-  (~100 lines, 3 tests) replaces single-EOA ownership of Registry, Verifier,
-  and RevocationRegistry. `scripts/deploy-multisig.ts` deploys + transfers.
-- **W5 · PrivateGovernance UI.** Second consumer dApp live at `/governance` —
-  create proposals, per-proposal scopes, anonymous voting. Proves the
-  infrastructure is reusable, not a single-purpose vault demo.
-- **W6 · NPM SDK + integration guide.** `@zkfabric/sdk` has publish metadata,
-  a full README, and [`INTEGRATION.md`](./INTEGRATION.md) — ~60 lines of
-  Solidity + ~40 lines of TypeScript for any dApp to gate on zkFabric. A
-  reference consumer lives in [`examples/integration-example/`](./examples/integration-example).
-- **W7 · Revocation dashboard + atomic KYC ingest.** New `/revoke` page lists
-  every credential from the indexer with three revocation modes.
-  `KYCSBTAdapter.ingestAndRegister` is a new single-call path that atomically
-  validates KYC + registers the hash, putting the adapter on the critical
-  path.
+| Step | What it tests | Result |
+|------|--------------|--------|
+| 1 | Create BIP39 identity (Poseidon commitment) | PASS |
+| 2 | Set KYC on MockKycSBT (PREMIUM/APPROVED) | PASS |
+| 3 | Issue credential via KYCSBTAdapter + updateRoot | PASS |
+| 4 | Generate Groth16 proof (Gated Vault scope) | PASS |
+| 5 | Mint mUSDC + approve + depositWithProof | PASS |
+| 6 | Create governance proposal | PASS |
+| 7 | Generate proof (governance scope) + anonymous vote | PASS |
+| 8 | Revoke Merkle root via RevocationRegistry | PASS |
+| 9 | Proof against revoked root rejected on-chain | PASS |
 
-All 65 tests still green (`npx hardhat test`).
+```bash
+# Run it yourself
+NODE_OPTIONS="--require ./scripts/force-ipv4.cjs" \
+  npx hardhat run scripts/e2e-testnet.ts --network hashkeyTestnet
+```
 
 ## Roadmap
 
@@ -727,12 +728,12 @@ All 65 tests still green (`npx hardhat test`).
 - [x] TypeScript SDK (`@zkfabric/sdk`) with publish metadata
 - [x] Next.js demo app (5 screens: Issue, Prove, Vault, Governance, Revoke)
 - [x] Deploy to HashKey Chain Testnet
-- [x] Event-sourced indexer replacing localStorage single-point-of-failure
-- [x] BIP39-recoverable identities
-- [x] Real Reclaim attestor backend signer
+- [x] Event-sourced indexer with full tree replay
+- [x] BIP39-recoverable identities (12-word mnemonic)
+- [x] Reclaim Protocol attestor backend (EIP-191 signing)
 - [x] On-chain revocation enforcement (root + nullifier)
-- [x] Threshold multisig registry ownership
-- [x] `INTEGRATION.md` + reference consumer contract
+- [x] Threshold multisig registry ownership (2-of-N)
+- [x] Integration guide + reference consumer contract
 - [ ] Multi-party trusted setup ceremony (contributor transcript)
 - [ ] Security audit
 - [ ] Credential expiration and auto-renewal circuits
