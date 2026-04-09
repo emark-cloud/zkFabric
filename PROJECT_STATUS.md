@@ -1,6 +1,6 @@
 # zkFabric — Project Status & Comprehensive Overview
 
-**Last Updated:** 2026-04-09 (production hardening W1–W7 complete, live testnet smoke test passed)
+**Last Updated:** 2026-04-09 (9-step live E2E passed, frontend visually verified, README polished for submission)
 **Author:** emark-cloud (solo developer)
 **Hackathon:** HashKey Chain On-Chain Horizon Hackathon 2026 — ZKID Track ($10K prize pool)
 
@@ -239,6 +239,25 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 - W1 revocation enforcement live on testnet via `scripts/smoke-revocation.ts`:
   - Fresh identity + credential → ingestCredential + registerComputedCredential → updateRoot → Groth16 proof generated → `verifyAndRecord` accepted (623k gas) → `revokeRoot` → second proof reverts with `"ZKFabricVerifier: root revoked"`
 
+### Verified on 2026-04-09
+- **9-step live testnet E2E** via `scripts/e2e-testnet.ts` — ALL 9 STEPS PASSED:
+  1. Create identity (BIP39-style random key → Poseidon commitment)
+  2. Set KYC on MockKycSBT (PREMIUM/APPROVED)
+  3. Issue credential via KYCSBTAdapter + updateRoot
+  4. Generate Groth16 proof (Gated Vault scope)
+  5. Mint 1000 mUSDC + approve + depositWithProof (100 mUSDC)
+  6. Create governance proposal
+  7. Generate proof (governance scope) + cast anonymous YES vote
+  8. Revoke Merkle root via RevocationRegistry
+  9. Proof against revoked root rejected on-chain
+- **Playwright frontend testing** — all 6 routes visually verified:
+  - Landing page: hero + 3 feature cards + "Under the Hood" section
+  - Issue, Prove, Vault, Governance, Revoke: all render with proper wallet gating
+  - Consistent Cryptographic Noir theme, active nav link highlighting
+  - Console errors are only expected infra warnings (no indexer running, placeholder WalletConnect ID)
+- **4 redeployed contracts verified on Blockscout** (ZKFabricVerifier, GatedVault, PrivateGovernance auto-matched; RevocationRegistry verified)
+- **README polished** — removed "Production Hardening" section, integrated all features cohesively into architecture/data flow/tech choices
+
 ---
 
 ## Production Hardening (2026-04-07 onward)
@@ -392,10 +411,13 @@ real-product bar. Plan: `/home/emark/.claude/plans/crispy-purring-wozniak.md`.
 1. ~~**Complete vault deposit test**~~ — **DONE** (2026-04-07)
 2. ~~**W1–W7 production hardening**~~ — **DONE** (2026-04-08)
 3. ~~**Live testnet smoke test**~~ — **DONE** (2026-04-08)
-4. **Record demo video** — 4-minute screencast (required by hackathon):
+4. ~~**9-step live testnet E2E**~~ — **DONE** (2026-04-09)
+5. ~~**Verify contracts on Blockscout**~~ — **DONE** (2026-04-09)
+6. ~~**Playwright frontend testing**~~ — **DONE** (2026-04-09, all 6 routes verified)
+7. ~~**README polish for submission**~~ — **DONE** (2026-04-09)
+8. **Record demo video** — 4-minute screencast (required by hackathon):
    - Connect → mnemonic backup → Register KYC → Issue credential → Prove (Gated Vault scope) → Vault deposit → Governance vote → Revoke credential → Revoked proof fails
-5. **Verify new contracts on Blockscout** — 4 redeployed contracts need verification
-6. **Deploy multisig on testnet** (optional) — transfer ownership via `deploy-multisig.ts`
+9. **Deploy multisig on testnet** (optional) — transfer ownership via `deploy-multisig.ts`
 
 ### Lower Priority (Nice-to-Have)
 7. **W8: Multi-party trusted setup ceremony** — recruit 2 contributors, publish transcript
@@ -429,6 +451,10 @@ All deployed on **HashKey Chain Testnet (Chain ID: 133)** and **verified on Bloc
 ## Commit History
 
 ```
+46323dc Polish README for hackathon submission — integrate all features cohesively
+39cffb5 Add full 9-step E2E test against live HashKey Chain Testnet
+8a66ba4 Update CLAUDE.md and README.md with W1-W7 status and new addresses
+6ad9f06 Update PROJECT_STATUS.md with W1-W7 completion and testnet smoke results
 35b8835 Redeploy RevocationRegistry and smoke-test W1 on live testnet
 e59a312 Redeploy verifier with W1 revocation enforcement on testnet
 bd8bef9 Add redeploy-verifier script to activate W1 revocation on testnet
