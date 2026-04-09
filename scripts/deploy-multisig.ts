@@ -6,7 +6,7 @@
  *   MULTISIG_THRESHOLD=2 \
  *   REGISTRY=0xa1708C934175Bf7EaC25220D560BE0C681725957 \
  *   VERIFIER=0xd49cA44645E21076dcd83F285D23c99AbeB6D299 \
- *   REVOCATION=0xfC9f91c305dfB69861bB1C7DD9777b4784FeCC8E \
+ *   REVOCATION=0x735680A32A0e5d9d23D7e8e8302F434e7F30428E \
  *   npx hardhat run scripts/deploy-multisig.ts --network hashkeyTestnet
  *
  * The signer running the script MUST currently own Registry/Verifier/Revocation

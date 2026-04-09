@@ -658,7 +658,7 @@ npm run dev
 |----------|---------|----------|
 | `Groth16Verifier` | `0x3a442161cb51555bab8F59351e5E1704e8200506` | [View](https://testnet-explorer.hsk.xyz/address/0x3a442161cb51555bab8F59351e5E1704e8200506) |
 | `ZKFabricRegistry` | `0xa1708C934175Bf7EaC25220D560BE0C681725957` | [View](https://testnet-explorer.hsk.xyz/address/0xa1708C934175Bf7EaC25220D560BE0C681725957) |
-| `RevocationRegistry` | `0xfC9f91c305dfB69861bB1C7DD9777b4784FeCC8E` | [View](https://testnet-explorer.hsk.xyz/address/0xfC9f91c305dfB69861bB1C7DD9777b4784FeCC8E) |
+| `RevocationRegistry` | `0x735680A32A0e5d9d23D7e8e8302F434e7F30428E` | [View](https://testnet-explorer.hsk.xyz/address/0x735680A32A0e5d9d23D7e8e8302F434e7F30428E) |
 | `ZKFabricVerifier` | `0xd49cA44645E21076dcd83F285D23c99AbeB6D299` | [View](https://testnet-explorer.hsk.xyz/address/0xd49cA44645E21076dcd83F285D23c99AbeB6D299) |
 | `MockKycSBT` | `0x335C915Fa62eeBF9804a4398bb85Cd370B333850` | [View](https://testnet-explorer.hsk.xyz/address/0x335C915Fa62eeBF9804a4398bb85Cd370B333850) |
 | `KYCSBTAdapter` | `0x3AfBFC76f49A4D466D03775B371a4F6142c6A194` | [View](https://testnet-explorer.hsk.xyz/address/0x3AfBFC76f49A4D466D03775B371a4F6142c6A194) |

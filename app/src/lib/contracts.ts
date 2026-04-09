@@ -2,7 +2,7 @@
 export const CONTRACTS = {
   registry: "0xa1708C934175Bf7EaC25220D560BE0C681725957" as `0x${string}`,
   verifier: "0xd49cA44645E21076dcd83F285D23c99AbeB6D299" as `0x${string}`,
-  revocation: "0xfC9f91c305dfB69861bB1C7DD9777b4784FeCC8E" as `0x${string}`,
+  revocation: "0x735680A32A0e5d9d23D7e8e8302F434e7F30428E" as `0x${string}`,
   kycSBT: "0x335C915Fa62eeBF9804a4398bb85Cd370B333850" as `0x${string}`,
   kycAdapter: "0x3AfBFC76f49A4D466D03775B371a4F6142c6A194" as `0x${string}`,
   zktlsAdapter: "0x310581957E11589F641199C3F7571A8eddEF38c8" as `0x${string}`,
