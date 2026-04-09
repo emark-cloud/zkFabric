@@ -1,6 +1,6 @@
 # zkFabric — Project Status & Comprehensive Overview
 
-**Last Updated:** 2026-04-07 (production hardening W1–W3 complete)
+**Last Updated:** 2026-04-09 (production hardening W1–W7 complete, live testnet smoke test passed)
 **Author:** emark-cloud (solo developer)
 **Hackathon:** HashKey Chain On-Chain Horizon Hackathon 2026 — ZKID Track ($10K prize pool)
 
@@ -203,16 +203,18 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 
 ## Where We Are Now
 
-**Current State: All 5 phases complete. Full frontend flow verified end-to-end on HashKey Chain Testnet.**
+**Current State: All 5 phases + W1–W7 production hardening complete. W1 revocation enforcement smoke-tested live on HashKey Chain Testnet.**
 
-- All 57 tests passing (12 circuit + 25 contract + 18 SDK + 2 e2e)
-- All 10 contracts deployed and verified on HashKey Chain Testnet Blockscout
-- Frontend fully functional with both KYC SBT and zkTLS credential issuance
-- "Cryptographic Noir" design applied — JetBrains Mono headings, gradient accents, animations
-- Full demo flow works end-to-end (verified via `scripts/demo-flow.ts`)
-- 11 commits in git history
+- All 65 tests passing (12 circuit + 28 contract + 18 SDK + 2 e2e + 5 new)
+- 12 contracts deployed on HashKey Chain Testnet (10 original + redeployed verifier/vault/governance/revocation)
+- Frontend with 7 pages: Landing, Issue, Prove, Vault, Governance, Revoke, plus NavBar
+- BIP39 mnemonic-based recoverable identity
+- Event-indexed Merkle tree via `indexer/` service (localStorage as fallback cache)
+- Real Reclaim zkTLS attestation backend (`attestor/` service)
+- On-chain revocation enforcement **verified live** — `revokeRoot` → proof rejected
+- Custom M-of-N multisig contract for registry governance
+- NPM-publishable SDK with INTEGRATION.md + example consumer contract
 - MIT LICENSE added
-- **Full frontend flow verified** — Connect wallet → Register KYC → Issue credential → Generate proof → Deposit in vault (all on-chain, all passing)
 - Registry ownership transferred to user wallet (`0xECf5...`) for frontend `updateRoot` calls
 
 ### What's Working
@@ -232,6 +234,10 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 
 ### Verified on 2026-04-07
 - Full frontend flow tested manually on HashKey Chain Testnet: wallet connect → KYC registration → credential issuance (with on-chain root update) → proof generation (Gated Vault scope) → vault deposit with ZK proof — **all passing**
+
+### Verified on 2026-04-08
+- W1 revocation enforcement live on testnet via `scripts/smoke-revocation.ts`:
+  - Fresh identity + credential → ingestCredential + registerComputedCredential → updateRoot → Groth16 proof generated → `verifyAndRecord` accepted (623k gas) → `revokeRoot` → second proof reverts with `"ZKFabricVerifier: root revoked"`
 
 ---
 
@@ -281,15 +287,58 @@ real-product bar. Plan: `/home/emark/.claude/plans/crispy-purring-wozniak.md`.
 - Smoke-tested locally: `/health` + `/attest` return a valid 65-byte
   signature against a throwaway key.
 
-### W4 — Multi-sig + UUPS upgradeable contracts ⏳ NEXT
+### W4 — Multi-sig registry governance ✅
+- Custom `ZKFabricMultisig.sol` (100-line M-of-N multisig) — submit/confirm/execute
+  pattern with duplicate-confirm rejection. Chosen over full UUPS to avoid storage
+  layout risk under time pressure.
+- `scripts/deploy-multisig.ts` deploys multisig and transfers ownership of
+  Registry, Verifier, and RevocationRegistry.
+- 3 tests in `ZKFabricMultisig.test.ts` (constructor validation, threshold
+  enforcement, routing admin calls through multisig).
+
+### W5 — PrivateGovernance UI ✅
+- `app/src/app/governance/page.tsx` — lists proposals, create proposal form,
+  per-proposal scope display with copy-to-clipboard, YES/NO vote toggle +
+  proof JSON paste + cast vote.
+- Scope computation mirrors Solidity: `keccak256(encodePacked("zkfabric-governance-v1", id)) % BN128`.
+- `GOVERNANCE_ABI` added to `contracts.ts`.
+
+### W6 — NPM SDK metadata + INTEGRATION.md ✅
+- `sdk/package.json` — `@zkfabric/sdk`, repository, keywords, prepublishOnly,
+  publishConfig access: public.
+- `sdk/README.md` — full API surface, architecture diagram, quickstart,
+  predicate table, deployed addresses.
+- `INTEGRATION.md` at repo root — 7-section dApp integration guide with scope
+  derivation in Solidity + TypeScript, consumer contract template, public
+  signals layout table.
+- `examples/integration-example/` — minimal Hardhat consumer contract
+  (`ExampleGatedApp.sol` calling `IZKFabric.verifyAndRecord`).
+
+### W7 — Revocation UI + KYCSBTAdapter wiring ✅
+- `app/src/app/revoke/page.tsx` — loads leaves from indexer, checks revocation
+  status in parallel, per-leaf revoke, revoke-by-root, ban-nullifier sections.
+- `REVOCATION_ABI` added to `contracts.ts`.
+- `KYCSBTAdapter.ingestAndRegister` added — single atomic call that validates
+  KYC + registers identity + registers credential hash. Poseidon stays
+  off-chain (~100k gas savings).
+- NavBar updated with Governance + Revoke links.
+
+### Testnet Redeploy (2026-04-08) ✅
+- Discovered deployed ZKFabricVerifier + RevocationRegistry predated W1 —
+  revocation enforcement was a no-op on-chain.
+- Redeployed: ZKFabricVerifier (wired to registry + revocation), GatedVault,
+  PrivateGovernance (immutable `zkFabric` reference cascade), RevocationRegistry.
+- **Live smoke test passed** (`scripts/smoke-revocation.ts`):
+  - Proof A accepted under scope A (623k gas)
+  - `revokeRoot(root)` → Proof B reverts with `"ZKFabricVerifier: root revoked"`
+- All addresses updated across contracts.ts, README, SDK README, INTEGRATION.md,
+  PROJECT_STATUS.md, deploy-multisig.ts.
 
 ### Still to do
-- W4: UUPS proxies + 2-of-3 Safe multisig ownership of registry + verifier.
-- W5: PrivateGovernance UI (second consumer story).
-- W6: NPM SDK publish + `INTEGRATION.md` + example consumer.
-- W7: Revocation UI + wire `KYCSBTAdapter.ingestCredential` end-to-end.
 - W8 (optional): multi-party trusted setup ceremony with public transcript.
 - W9: demo video + README polish.
+- Deploy multisig on testnet + transfer ownership (optional before submission).
+- Verify new contracts on Blockscout.
 
 ---
 
@@ -327,32 +376,31 @@ real-product bar. Plan: `/home/emark/.claude/plans/crispy-purring-wozniak.md`.
 - snarkjs missing types — created `src/types/snarkjs.d.ts`
 
 ### Known Limitations
-- Reclaim Protocol not actually deployed on HashKey Chain — zkTLS flow uses demo/mock data
+- Reclaim proof verification runs server-side in `attestor/` service (Reclaim not deployed on HashKey Chain); `ATTESTOR_DEV_MODE=1` bypasses verification for local demos
 - KYC SBT contract address unknown (HashKey docs don't publish it) — using MockKycSBT
 - Only single-contributor trusted setup ceremony (acceptable for hackathon, not production)
 - @zk-kit/imt is beta (2.0.0-beta.8) — API stable but version number is pre-release
+- 4 redeployed contracts not yet verified on Blockscout (verifier, vault, governance, revocation)
+- Multisig not yet deployed on testnet — registry/verifier still owned by single EOA
+- WSL2 network environment requires `scripts/force-ipv4.cjs` preload for reliable RPC connectivity
 
 ---
 
 ## Next Steps
 
-### High Priority (Before Submission)
-1. ~~**Complete vault deposit test**~~ — **DONE** (2026-04-07). Full flow verified on testnet.
-2. **Record demo video** — 3-5 minute screencast showing end-to-end flow (required by hackathon)
-   - Connect wallet → Register KYC → Issue credential → Generate proof (Gated Vault scope) → Deposit in vault
-3. **Push more granular commits** — Current history has 11 commits; consider adding more for review
-
-### Medium Priority (Polish)
-4. **Improve mobile responsiveness** — NavBar links hidden on mobile but no hamburger menu
-5. **Add loading states** — Better skeleton screens while contract data loads
-6. **Error recovery** — More graceful handling of failed transactions
-7. **Demo video overlay** — Add explanatory text/annotations to video
+### High Priority (Before Submission — Apr 14)
+1. ~~**Complete vault deposit test**~~ — **DONE** (2026-04-07)
+2. ~~**W1–W7 production hardening**~~ — **DONE** (2026-04-08)
+3. ~~**Live testnet smoke test**~~ — **DONE** (2026-04-08)
+4. **Record demo video** — 4-minute screencast (required by hackathon):
+   - Connect → mnemonic backup → Register KYC → Issue credential → Prove (Gated Vault scope) → Vault deposit → Governance vote → Revoke credential → Revoked proof fails
+5. **Verify new contracts on Blockscout** — 4 redeployed contracts need verification
+6. **Deploy multisig on testnet** (optional) — transfer ownership via `deploy-multisig.ts`
 
 ### Lower Priority (Nice-to-Have)
-8. **Governance page** — PrivateGovernance contract is deployed but no UI exists
-9. **Revocation flow** — RevocationRegistry is deployed but no UI to revoke/check revocation
-10. **Real Reclaim integration** — Deploy Reclaim verifier contract ourselves for live zkTLS
-11. **Multi-credential proof** — Support proving multiple credentials in a single proof
+7. **W8: Multi-party trusted setup ceremony** — recruit 2 contributors, publish transcript
+8. **Improve mobile responsiveness** — NavBar links hidden on mobile but no hamburger menu
+9. **Multi-credential proof** — Support proving multiple credentials in a single proof
 
 ---
 
@@ -381,6 +429,15 @@ All deployed on **HashKey Chain Testnet (Chain ID: 133)** and **verified on Bloc
 ## Commit History
 
 ```
+35b8835 Redeploy RevocationRegistry and smoke-test W1 on live testnet
+e59a312 Redeploy verifier with W1 revocation enforcement on testnet
+bd8bef9 Add redeploy-verifier script to activate W1 revocation on testnet
+22687c4 Polish README for submission with W1-W7 hardening summary
+994c9e7 Add issuer revocation dashboard and atomic KYC ingest path
+974a5ee Add npm publish metadata, SDK README, INTEGRATION.md, and example consumer
+3e271d9 Add PrivateGovernance UI as a second ZK consumer
+f7a292b Add ZKFabricMultisig to replace single-EOA ownership
+a8e08fa Update PROJECT_STATUS with W1-W3 production hardening progress
 3bb3738 Add Reclaim attestor service and wire zkTLS issuance
 32dad3d Add indexer service and BIP39 recoverable identity
 5b32818 Enforce credential revocation in ZKFabricVerifier
@@ -503,7 +560,9 @@ app/src/
 │   ├── page.tsx                       # Landing page (hero, steps, CTA)
 │   ├── issue/page.tsx                 # Credential issuance (KYC + zkTLS tabs)
 │   ├── prove/page.tsx                 # Proof composer + in-browser generation
-│   └── vault/page.tsx                 # Gated vault deposit with proof
+│   ├── vault/page.tsx                 # Gated vault deposit with proof
+│   ├── governance/page.tsx            # Anonymous voting (PrivateGovernance consumer)
+│   └── revoke/page.tsx                # Issuer revocation dashboard
 ├── components/
 │   ├── NavBar.tsx                     # Glassmorphism nav with active indicator
 │   ├── ClientProviders.tsx            # Wagmi + RainbowKit + React Query
@@ -515,16 +574,37 @@ app/src/
     └── fabric.ts                      # SDK bridge (imports, localStorage persistence)
 ```
 
+### New Packages (Production Hardening)
+```
+indexer/                               # Event-indexed Merkle tree service
+├── src/index.ts                       # Hono + viem WebSocket watcher
+└── data/state.json                    # Persisted leaves
+
+attestor/                              # Reclaim zkTLS verification + EIP-191 signer
+├── src/index.ts                       # Hono service (POST /attest, GET /health)
+└── package.json                       # @zkfabric/attestor
+
+examples/integration-example/          # Minimal dApp consumer example
+└── contracts/ExampleGatedApp.sol      # ~40-line consumer calling IZKFabric.verifyAndRecord
+```
+
 ### Scripts & Tests
 ```
 scripts/
 ├── deploy.ts                          # Full deployment script
+├── deploy-multisig.ts                 # Deploy multisig + transfer ownership
 ├── demo-flow.ts                       # End-to-end scripted demo
+├── smoke-revocation.ts                # Live testnet W1 revocation smoke test
+├── redeploy-verifier.ts               # Redeploy verifier + cascade consumers
+├── redeploy-revocation.ts             # Redeploy RevocationRegistry + rewire verifier
+├── set-attestor.ts                    # Wire ZKTLSAdapter to attestor signing key
+├── check-signer.ts                    # Print signer address + balance
+├── force-ipv4.cjs                     # WSL2 IPv6 workaround for Cloudflare RPC
 └── setup-ceremony.sh                  # Trusted setup automation
 
 test/
 ├── circuits/                          # 12 circuit tests
-├── contracts/                         # 25 contract tests
+├── contracts/                         # 28 contract tests (+3 multisig)
 ├── sdk/                               # 18 SDK tests
 └── integration/
     └── e2e.test.ts                    # 2 e2e tests (full flow + nullifier replay)
@@ -545,7 +625,9 @@ CLAUDE.md                              # Full development guide + chain details 
 |---|---|
 | 2026-03-10 | Hackathon start (clean git history from here) |
 | 2026-04-06 | All 5 phases complete, frontend overhauled, PROJECT_STATUS.md created |
-| 2026-04-07 | **TODAY** — Fixed scope mismatch, invalid merkle root, credential dedup, KYC registration UX, clipboard fix |
+| 2026-04-07 | Fixed scope mismatch, invalid merkle root, credential dedup, KYC registration UX, clipboard fix |
+| 2026-04-08 | W1–W7 production hardening complete; redeployed verifier/vault/governance/revocation; live smoke test passed |
+| 2026-04-09 | **TODAY** — PROJECT_STATUS updated, remaining: demo video, Blockscout verification, optional multisig deploy |
 | 2026-04-14 | Demo submission opens + project pre-screening |
 | 2026-04-15 | Registration deadline |
 | 2026-04-16 | Official pitch |
