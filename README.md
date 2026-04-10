@@ -140,7 +140,7 @@ contracts/
 │   └── RevocationRegistry.sol       # Credential revocation
 │                                    # - Root, nullifier, and credential revocation
 │                                    # - Enforced by ZKFabricVerifier on every proof
-│                                    # - Issuer-controlled revocation list
+│                                    # - Open for demo; production: issuer-controlled
 │
 ├── adapters/
 │   ├── KYCSBTAdapter.sol            # Reads HashKey's native KYC SBT
@@ -447,7 +447,7 @@ contract MyDeFiVault {
 
 ## Demo Application
 
-The hackathon demo has five screens that demonstrate the complete flow:
+The hackathon demo has five screens (plus a landing page) that demonstrate the complete flow:
 
 ### Screen 1: Credential Issuer
 
@@ -496,8 +496,8 @@ All three are enforced by `ZKFabricVerifier.verifyAndRecord` without any circuit
 | **Frontend** | Next.js 16 + viem v2 + RainbowKit | Standard stack. viem for type-safe contract interactions. RainbowKit for wallet connection. |
 | **Smart Contracts** | Solidity 0.8.28 + Hardhat | Standard. OpenZeppelin for access control and ERC-4626 vault. |
 | **Identity Recovery** | BIP39 mnemonic (`@scure/bip39`) | 12-word seed phrase derives the Poseidon private key. Users back it up once — losing the browser doesn't brick credentials. |
-| **Tree Indexer** | Hono + viem WebSocket watcher | Replays `CredentialRegistered` events from the registry. Exposes `/leaves`, `/root`, `/health`. SDK hydrates from indexer — localStorage is a cache, not the source of truth. |
-| **Registry Ownership** | Threshold multisig (`ZKFabricMultisig.sol`) | 2-of-N on-chain multisig for Registry, Verifier, and RevocationRegistry. No single EOA can update roots or revoke credentials unilaterally. |
+| **Tree Indexer** | Hono + viem (HTTP polling + WebSocket) | Replays `CredentialRegistered` events from the registry via getLogs polling (with WebSocket fallback). Exposes `/leaves`, `/root`, `/health`. SDK hydrates from indexer — localStorage is a cache, not the source of truth. |
+| **Registry Ownership** | Threshold multisig (`ZKFabricMultisig.sol`) | 2-of-N on-chain multisig contract available. Demo mode: `updateRoot` and `revoke` are open for any caller to simplify testing. Production: transfer ownership to multisig. |
 | **Chain** | HashKey Chain Testnet (ID: 133) | Required by hackathon. EVM-compatible, OP Stack based. Testnet HSK via faucet. |
 
 ---

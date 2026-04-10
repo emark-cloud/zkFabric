@@ -37,10 +37,11 @@ describe("RevocationRegistry", function () {
     expect(await revocation.isRevoked(12345)).to.be.true;
   });
 
-  it("should reject unauthorized revocation", async function () {
+  it("should allow any caller to revoke (open for demo)", async function () {
     await expect(
       revocation.connect(user).revoke(12345)
-    ).to.be.revertedWith("RevocationRegistry: not authorized");
+    ).to.not.be.reverted;
+    expect(await revocation.isRevoked(12345)).to.be.true;
   });
 
   it("should reject double revocation", async function () {
@@ -88,9 +89,10 @@ describe("RevocationRegistry", function () {
     expect(await revocation.isNullifierRevoked(nullifier)).to.be.false;
   });
 
-  it("should reject unauthorized root revocation", async function () {
+  it("should allow any caller to revoke root (open for demo)", async function () {
     await expect(
       revocation.connect(user).revokeRoot(123)
-    ).to.be.revertedWith("RevocationRegistry: not authorized");
+    ).to.not.be.reverted;
+    expect(await revocation.isRootRevoked(123)).to.be.true;
   });
 });
