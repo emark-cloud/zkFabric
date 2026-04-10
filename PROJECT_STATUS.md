@@ -1,6 +1,6 @@
 # zkFabric — Project Status & Comprehensive Overview
 
-**Last Updated:** 2026-04-10 (full frontend manual testing, 7 contracts redeployed, per-wallet isolation, indexer polling, credential revocation verified)
+**Last Updated:** 2026-04-10 (full frontend manual testing, 7 contracts redeployed, per-wallet isolation, indexer polling, credential revocation verified, tree sync race condition fixed, project documentation added)
 **Author:** emark-cloud (solo developer)
 **Hackathon:** HashKey Chain On-Chain Horizon Hackathon 2026 — ZKID Track ($10K prize pool)
 
@@ -97,13 +97,9 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 
 ### Reclaim Protocol / zkTLS Strategy
 - Reclaim uses signature-based attestation (ECDSA), NOT Groth16/PLONK proofs
-- Almost certainly NOT deployed on HashKey Chain testnet
-- Current approach: Demo mode with mock zkTLS attestation data (GitHub account age)
-- Production approach would be: off-chain Reclaim verification → pack into 8-slot Poseidon commitment → selective disclosure via our Groth16 circuit
-- Options considered:
-  1. Deploy Reclaim's verifier contract ourselves from their `verifier-solidity-sdk`
-  2. Off-chain verify + trusted relayer
-  3. Mock adapter for demo (current approach)
+- NOT deployed on HashKey Chain testnet
+- **Implemented**: Backend attestor service (`attestor/`) that verifies Reclaim proofs server-side and signs credential slots with EIP-191 for `ZKTLSAdapter.submitAttestation`. `ATTESTOR_DEV_MODE=1` bypasses Reclaim verification for local demos.
+- Production approach: off-chain Reclaim verification → pack into 8-slot Poseidon commitment → selective disclosure via our Groth16 circuit
 
 ### 52 Public Signals
 - `[0]` = allPredicatesPass (1 or 0)
@@ -158,7 +154,7 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 
 ### Phase 5: Integration & Deployment ✅
 - E2E integration tests (2 passing): full flow + nullifier replay rejection
-- All 57 tests green across circuits, contracts, SDK, and integration
+- All 65 tests green across circuits, contracts, SDK, and integration
 - Deployed all 10 contracts to HashKey Chain Testnet
 - All contracts verified on Blockscout
 - BN128 field overflow bug fixed
@@ -198,6 +194,10 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 26. ✅ Fixed "invalid merkle root" — frontend never called `updateRoot` on Registry after issuing credentials; added automatic `updateRoot` call in `persistCredential`
 27. ✅ Transferred ZKFabricRegistry ownership from deployer to user wallet so frontend can call `updateRoot`
 28. ✅ Credential deduplication — re-issuing a credential of the same type (KYC/zkTLS) now replaces the old one instead of creating duplicates
+29. ✅ Redeployed 7 contracts for demo-mode open permissions and correct adapter→registry wiring (2026-04-10)
+30. ✅ Indexer CORS + HTTP polling fallback (WebSocket free-tier unsupported on drpc.org)
+31. ✅ Tree sync race condition fix — merge local credentials into synced tree + defensive re-add on prove page
+32. ✅ Project documentation — `docs/WHAT_IS_ZKFABRIC.md` and `docs/DEMO_FLOW.md`
 
 ---
 
@@ -277,6 +277,8 @@ The key insight: **separate the credential from the proof.** Credentials come fr
   - ZKTLSAdapter (`0xFd631...`) — wired to new registry, attestor = deployer key
   - GatedVault (`0xdA157...`) + PrivateGovernance (`0x4B42F...`) — wired to new verifier
 - **Indexer improvements**: CORS middleware added, HTTP polling fallback every 10s, correct registry address
+- **Tree sync race condition fixed**: `syncTreeFromIndexer` on issue page could overwrite local tree before indexer caught up with newly-minted credentials. Fixed by merging local credentials into synced tree (issue page) and defensively re-adding missing credentials on prove page.
+- **Project documentation added**: `docs/WHAT_IS_ZKFABRIC.md` (plain-language explainer) and `docs/DEMO_FLOW.md` (step-by-step demo walkthrough with on-chain details and dApp integration examples)
 
 ---
 
@@ -375,9 +377,8 @@ real-product bar. Plan: `/home/emark/.claude/plans/crispy-purring-wozniak.md`.
 
 ### Still to do
 - W8 (optional): multi-party trusted setup ceremony with public transcript.
-- W9: demo video + README polish.
+- W9: demo video (4-minute screencast required by hackathon).
 - Deploy multisig on testnet + transfer ownership (optional before submission).
-- Verify new contracts on Blockscout.
 
 ---
 
@@ -406,6 +407,8 @@ real-product bar. Plan: `/home/emark/.claude/plans/crispy-purring-wozniak.md`.
 
 11. **Duplicate Credentials** — Re-issuing a credential of the same type (KYC or zkTLS) appended to the list instead of replacing. Users saw 2+ credentials of the same type on the Prove page with no way to tell which was latest. Fixed by filtering out old credentials of the same type in `persistCredential`.
 
+12. **Tree Sync Race Condition** — `syncTreeFromIndexer` on the issue page overwrote the localStorage tree with the indexer's state before the indexer caught up with the newly-minted credential. The prove page then loaded a tree missing the user's credential, causing a circuit assert failure at line 78 (`merkle.root === merkleRoot`). Fixed by merging local credentials into the synced tree on the issue page, and defensively re-adding any missing credentials on the prove page.
+
 ### Minor Issues (Fixed)
 - npm install corruption from concurrent installs — fixed with clean reinstall
 - Turbopack vs webpack conflict — fixed with `turbopack: {}` in next.config.ts and `--webpack` build flag
@@ -419,7 +422,6 @@ real-product bar. Plan: `/home/emark/.claude/plans/crispy-purring-wozniak.md`.
 - KYC SBT contract address unknown (HashKey docs don't publish it) — using MockKycSBT
 - Only single-contributor trusted setup ceremony (acceptable for hackathon, not production)
 - @zk-kit/imt is beta (2.0.0-beta.8) — API stable but version number is pre-release
-- 4 redeployed contracts not yet verified on Blockscout (verifier, vault, governance, revocation)
 - Multisig not yet deployed on testnet — registry/verifier still owned by single EOA
 - WSL2 network environment requires `scripts/force-ipv4.cjs` preload for reliable RPC connectivity
 
@@ -657,6 +659,13 @@ test/
     └── e2e.test.ts                    # 2 e2e tests (full flow + nullifier replay)
 ```
 
+### Documentation
+```
+docs/
+├── WHAT_IS_ZKFABRIC.md                # Plain-language project explainer + HashKey Chain value prop
+└── DEMO_FLOW.md                       # Step-by-step demo walkthrough with on-chain details
+```
+
 ### Config
 ```
 hardhat.config.ts                      # Solidity 0.8.28, optimizer, HashKey testnet, Blockscout verify
@@ -674,7 +683,8 @@ CLAUDE.md                              # Full development guide + chain details 
 | 2026-04-06 | All 5 phases complete, frontend overhauled, PROJECT_STATUS.md created |
 | 2026-04-07 | Fixed scope mismatch, invalid merkle root, credential dedup, KYC registration UX, clipboard fix |
 | 2026-04-08 | W1–W7 production hardening complete; redeployed verifier/vault/governance/revocation; live smoke test passed |
-| 2026-04-09 | **TODAY** — PROJECT_STATUS updated, remaining: demo video, Blockscout verification, optional multisig deploy |
+| 2026-04-09 | 9-step live testnet E2E, Playwright frontend testing, README polish, 4 contracts verified on Blockscout |
+| 2026-04-10 | **TODAY** — Full frontend manual testing, 7 contracts redeployed, tree sync fix, project docs (WHAT_IS_ZKFABRIC.md, DEMO_FLOW.md) |
 | 2026-04-14 | Demo submission opens + project pre-screening |
 | 2026-04-15 | Registration deadline |
 | 2026-04-16 | Official pitch |
@@ -683,6 +693,7 @@ CLAUDE.md                              # Full development guide + chain details 
 
 ### Submission Requirements
 - GitHub repo with deployed HashKey Chain contract address in README ✅
+- Project documentation (WHAT_IS_ZKFABRIC.md, DEMO_FLOW.md, INTEGRATION.md) ✅
 - Short demo video ❌ (still needed)
 - Clean git history from hackathon start ✅
 - Winners must complete KYC verification

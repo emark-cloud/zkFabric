@@ -7,8 +7,8 @@ import {
   loadIdentity,
   loadCredentials,
   loadTree,
+  saveTree,
   loadLeafIndices,
-  syncTreeFromIndexer,
   generateProofInBrowser,
   type Identity,
   type Credential,
@@ -41,22 +41,26 @@ export default function ProvePage() {
   useEffect(() => {
     setActiveWallet(address);
     setIdentity(loadIdentity());
-    setCredentials(loadCredentials());
+    const creds = loadCredentials();
+    setCredentials(creds);
     setLeafIndices(loadLeafIndices());
 
-    // Source of truth for the credential tree is the on-chain event log,
-    // replayed via the indexer. Local cache is only a fallback.
-    let cancelled = false;
-    syncTreeFromIndexer()
-      .then((t) => {
-        if (!cancelled) setTree(t);
-      })
-      .catch(() => {
-        if (!cancelled) setTree(loadTree());
-      });
-    return () => {
-      cancelled = true;
-    };
+    // Load the local tree and ensure all of the user's credentials are present.
+    // syncTreeFromIndexer on the issue page can race with persistCredential and
+    // overwrite the tree before the indexer has caught up, losing newly added
+    // credentials. Re-adding them here restores the same insertion order and root.
+    let currentTree = loadTree();
+    if (currentTree) {
+      let modified = false;
+      for (const cred of creds) {
+        if (currentTree.indexOf(cred.credentialHash) === -1) {
+          currentTree.addCredential(cred.credentialHash);
+          modified = true;
+        }
+      }
+      if (modified) saveTree(currentTree);
+      setTree(currentTree);
+    }
   }, [address]);
 
   const selectedCred = credentials.find((c) => c.id === selectedCredId);
@@ -64,10 +68,18 @@ export default function ProvePage() {
   const handleGenerateProof = async () => {
     if (!identity || !selectedCred || !tree) return;
 
-    const leafIndex = leafIndices.get(selectedCred.id);
-    if (leafIndex === undefined) {
-      setError("Leaf index not found for this credential");
-      return;
+    // Find the credential's actual position in the tree by searching for its hash,
+    // rather than trusting the stored leafIndices map (which can be stale if the
+    // tree was rebuilt from the indexer with a different insertion order).
+    let leafIndex = tree.indexOf(selectedCred.credentialHash);
+    if (leafIndex === -1) {
+      // Fall back to stored index
+      const stored = leafIndices.get(selectedCred.id);
+      if (stored === undefined) {
+        setError("Credential not found in the Merkle tree. Try re-issuing it.");
+        return;
+      }
+      leafIndex = stored;
     }
 
     setIsProving(true);
@@ -76,6 +88,15 @@ export default function ProvePage() {
 
     try {
       const merkleProof = tree.getMerkleProof(leafIndex);
+      console.log("[prove] tree root:", tree.getRoot().toString());
+      console.log("[prove] tree size:", tree.size);
+      console.log("[prove] leaf index:", leafIndex);
+      console.log("[prove] credential hash:", selectedCred.credentialHash.toString());
+      console.log("[prove] merkle proof root:", merkleProof.root.toString());
+      console.log("[prove] merkle proof leaf:", merkleProof.leaf.toString());
+      console.log("[prove] merkle proof depth:", merkleProof.siblings.length);
+      console.log("[prove] pathIndices:", JSON.stringify(merkleProof.pathIndices));
+      console.log("[prove] first 3 siblings:", merkleProof.siblings.slice(0, 3).map(String));
       const scopeBigInt = BigInt(scope);
 
       const start = performance.now();

@@ -55,6 +55,13 @@ export class CredentialTree {
   }
 
   /**
+   * Find the index of a leaf in the tree. Returns -1 if not found.
+   */
+  indexOf(leaf: bigint): number {
+    return this.tree.leaves.findIndex((l) => BigInt(l) === leaf);
+  }
+
+  /**
    * Number of leaves in the tree.
    */
   get size(): number {

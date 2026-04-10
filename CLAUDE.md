@@ -42,7 +42,7 @@ interface IKycSBT {
 - **Merkle Tree**: Standard binary IMT (depth 20, arity 2) via `@zk-kit/imt` with Poseidon hash
 - **Frontend**: Next.js 16, viem v2, wagmi, RainbowKit (7 pages: landing, issue, prove, vault, governance, revoke)
 - **SDK**: TypeScript, snarkjs, poseidon-lite, @zk-kit/imt, @scure/bip39 (BIP39 recovery)
-- **Indexer**: Hono + viem WebSocket event watcher, persists to JSON, exposes /leaves /root /health
+- **Indexer**: Hono + viem HTTP polling event watcher (WebSocket fallback), persists to JSON, exposes /leaves /root /health
 - **Attestor**: Hono + @reclaimprotocol/js-sdk, EIP-191 signing for ZKTLSAdapter
 
 ## Key Architecture Decisions
@@ -150,7 +150,7 @@ HashKey Chain's Cloudflare-fronted RPC (`testnet.hsk.xyz`) has IPv6/IPv4 routing
 - **Phase 4**: COMPLETE — Next.js 16 frontend (landing, issue, prove, vault, governance, revoke pages), RainbowKit + wagmi for HashKey Chain
 - **Phase 5**: COMPLETE — e2e integration tests (2 passing), all 65 tests green, deployed to HashKey Chain Testnet, BN128 field overflow + Groth16 pi_b ordering bugs fixed
 - **Production Hardening (W1–W7)**: COMPLETE — on-chain revocation enforcement (smoke-tested live), event-indexed tree + BIP39 recovery, Reclaim attestor backend, threshold multisig contract, PrivateGovernance UI, NPM SDK metadata + INTEGRATION.md, revocation dashboard + atomic KYC ingest
-- **Frontend Testing (2026-04-10)**: Full manual testing pass — per-wallet storage isolation, open demo permissions (updateRoot, setKycInfo, revoke), redeployed 7 contracts with correct adapter→registry wiring, on-chain credential registration (CredentialRegistered events), indexer CORS + polling fallback, credential revocation verified live
+- **Frontend Testing (2026-04-10)**: Full manual testing pass — per-wallet storage isolation, open demo permissions (updateRoot, setKycInfo, revoke), redeployed 7 contracts with correct adapter→registry wiring, on-chain credential registration (CredentialRegistered events), indexer CORS + polling fallback, credential revocation verified live, tree sync race condition fixed (indexer→local merge + prove-page defensive credential re-add)
 
 ## Research Findings (2026-04-05)
 - **BN128 precompiles**: Confirmed working on OP Stack L2s. Groth16 on-chain verification is safe on HashKey Chain.

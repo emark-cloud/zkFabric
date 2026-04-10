@@ -563,8 +563,12 @@ zkfabric/
 │       ├── contracts.ts            # Contract ABIs + deployed addresses
 │       └── fabric.ts               # SDK bridge + localStorage persistence
 │
+├── docs/                           # Project documentation
+│   ├── WHAT_IS_ZKFABRIC.md        # Plain-language project explainer
+│   └── DEMO_FLOW.md               # Step-by-step demo walkthrough
+│
 ├── indexer/                        # Event-sourced Merkle tree indexer
-│   └── src/index.ts                # Hono + viem WebSocket watcher
+│   └── src/index.ts                # Hono + viem HTTP polling watcher
 │                                   # Replays CredentialRegistered events
 │                                   # Exposes /leaves, /root, /health
 │
@@ -742,6 +746,12 @@ NODE_OPTIONS="--require ./scripts/force-ipv4.cjs" \
 - [ ] Mainnet deployment
 
 ---
+
+## Documentation
+
+- **[What is zkFabric?](./docs/WHAT_IS_ZKFABRIC.md)** — Plain-language explanation of the system and how it's useful to HashKey Chain
+- **[Demo Flow](./docs/DEMO_FLOW.md)** — Step-by-step walkthrough of every demo step with on-chain details
+- **[Integration Guide](./INTEGRATION.md)** — ~60 lines Solidity + ~40 lines TypeScript to gate any dApp
 
 ## Resources
 

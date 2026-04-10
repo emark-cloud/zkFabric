@@ -65,12 +65,20 @@ export default function IssuePage() {
     setLeafIndices(loadLeafIndices());
     setHasMnemonic(loadMnemonic() !== null);
 
-    // Source of truth for the credential tree is the indexer (replays the
-    // on-chain CredentialRegistered event log). Local cache is only a fallback.
+    // Sync from the indexer but merge in any local credentials that the indexer
+    // hasn't caught up with yet (race: user mints → indexer polls 10s later).
+    const creds = loadCredentials();
     let cancelled = false;
     syncTreeFromIndexer()
       .then((t) => {
-        if (!cancelled) setTree(t);
+        if (cancelled) return;
+        for (const cred of creds) {
+          if (t.indexOf(cred.credentialHash) === -1) {
+            t.addCredential(cred.credentialHash);
+          }
+        }
+        saveTree(t);
+        setTree(t);
       })
       .catch(() => {
         if (!cancelled) setTree(loadTree() || new CredentialTree());
@@ -108,8 +116,20 @@ export default function IssuePage() {
 
   // Auto-refetch KYC data after setKycInfo tx confirms
   useEffect(() => {
-    if (setKycConfirmed) refetchKyc();
+    if (setKycConfirmed) {
+      // Small delay to ensure chain state has propagated, then refetch
+      const timer = setTimeout(() => refetchKyc(), 1000);
+      return () => clearTimeout(timer);
+    }
   }, [setKycConfirmed, refetchKyc]);
+
+  // Also refetch whenever setKycTxHash changes (new tx submitted)
+  useEffect(() => {
+    if (setKycTxHash) {
+      const timer = setTimeout(() => refetchKyc(), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [setKycTxHash, refetchKyc]);
 
   const kycInfo: KycInfo | null = kycData
     ? {
@@ -497,7 +517,7 @@ export default function IssuePage() {
             ) : (
               <div className="bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4 space-y-3">
                 <p className="text-sm text-yellow-400">
-                  No KYC found for your address. Register on the MockKycSBT contract to continue.
+                  No KYC found for your address. Select a tier below to register:
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   {([
@@ -576,7 +596,7 @@ export default function IssuePage() {
                 disabled={isProcessing}
                 className="px-6 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 rounded-lg font-heading uppercase tracking-wider text-sm font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(139,92,246,0.25)]"
               >
-                {isProcessing ? "Processing..." : "Mint KYC Credential"}
+                {isProcessing ? "Processing..." : isApproved ? "Mint KYC Credential" : "Mint Demo Credential (offline)"}
               </button>
             ) : (
               <p className="text-sm text-[#3f3f46]">Create an identity first.</p>
