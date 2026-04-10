@@ -30,13 +30,13 @@ contract MockKycSBT is Ownable {
 
     constructor() Ownable(msg.sender) {}
 
-    /// @notice Admin: set KYC info for a user (for testing)
+    /// @notice Set KYC info for a user (open for demo — any wallet can self-register)
     function setKycInfo(
         address user,
         string calldata ensName,
         KycLevel level,
         KycStatus status
-    ) external onlyOwner {
+    ) external {
         kycData[user] = KycInfo({
             ensName: ensName,
             level: level,

@@ -116,10 +116,11 @@ describe("ZKFabricRegistry", function () {
       );
     });
 
-    it("should reject non-owner root updates", async function () {
+    it("should allow any caller to update root", async function () {
       await expect(
         registry.connect(user).updateRoot(1000)
-      ).to.be.reverted;
+      ).to.not.be.reverted;
+      expect(await registry.currentRoot()).to.equal(1000);
     });
   });
 });

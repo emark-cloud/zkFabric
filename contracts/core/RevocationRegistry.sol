@@ -53,13 +53,14 @@ contract RevocationRegistry is Ownable {
         emit IssuerRemoved(issuer);
     }
 
-    function revoke(uint256 credentialHash) external onlyIssuer {
+    /// @dev Open for demo — any caller can revoke. In production, restrict to onlyIssuer.
+    function revoke(uint256 credentialHash) external {
         require(!revoked[credentialHash], "RevocationRegistry: already revoked");
         revoked[credentialHash] = true;
         emit CredentialRevoked(credentialHash, msg.sender);
     }
 
-    function restore(uint256 credentialHash) external onlyIssuer {
+    function restore(uint256 credentialHash) external {
         require(revoked[credentialHash], "RevocationRegistry: not revoked");
         revoked[credentialHash] = false;
         emit CredentialRestored(credentialHash, msg.sender);
@@ -73,14 +74,14 @@ contract RevocationRegistry is Ownable {
     // Root revocation — coarse-grained enforcement without circuit changes
     // ================================================================
 
-    function revokeRoot(uint256 root) external onlyIssuer {
+    function revokeRoot(uint256 root) external {
         require(root != 0, "RevocationRegistry: zero root");
         require(!revokedRoots[root], "RevocationRegistry: root already revoked");
         revokedRoots[root] = true;
         emit RootRevoked(root, msg.sender);
     }
 
-    function restoreRoot(uint256 root) external onlyIssuer {
+    function restoreRoot(uint256 root) external {
         require(revokedRoots[root], "RevocationRegistry: root not revoked");
         revokedRoots[root] = false;
         emit RootRestored(root, msg.sender);
@@ -94,14 +95,14 @@ contract RevocationRegistry is Ownable {
     // Nullifier ban — defense-in-depth post-revocation
     // ================================================================
 
-    function revokeNullifier(uint256 nullifier) external onlyIssuer {
+    function revokeNullifier(uint256 nullifier) external {
         require(nullifier != 0, "RevocationRegistry: zero nullifier");
         require(!revokedNullifiers[nullifier], "RevocationRegistry: nullifier already revoked");
         revokedNullifiers[nullifier] = true;
         emit NullifierRevoked(nullifier, msg.sender);
     }
 
-    function restoreNullifier(uint256 nullifier) external onlyIssuer {
+    function restoreNullifier(uint256 nullifier) external {
         require(revokedNullifiers[nullifier], "RevocationRegistry: nullifier not revoked");
         revokedNullifiers[nullifier] = false;
         emit NullifierRestored(nullifier, msg.sender);

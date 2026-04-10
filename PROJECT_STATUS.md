@@ -1,6 +1,6 @@
 # zkFabric — Project Status & Comprehensive Overview
 
-**Last Updated:** 2026-04-09 (9-step live E2E passed, frontend visually verified, README polished for submission)
+**Last Updated:** 2026-04-10 (full frontend manual testing, 7 contracts redeployed, per-wallet isolation, indexer polling, credential revocation verified)
 **Author:** emark-cloud (solo developer)
 **Hackathon:** HashKey Chain On-Chain Horizon Hackathon 2026 — ZKID Track ($10K prize pool)
 
@@ -203,19 +203,21 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 
 ## Where We Are Now
 
-**Current State: All 5 phases + W1–W7 production hardening complete. W1 revocation enforcement smoke-tested live on HashKey Chain Testnet.**
+**Current State: All 5 phases + W1–W7 production hardening complete. Full frontend manual testing pass on 2026-04-10 with 7 contracts redeployed.**
 
 - All 65 tests passing (12 circuit + 28 contract + 18 SDK + 2 e2e + 5 new)
-- 12 contracts deployed on HashKey Chain Testnet (10 original + redeployed verifier/vault/governance/revocation)
+- 17 contracts deployed on HashKey Chain Testnet (10 original + 7 redeployed for demo-mode permissions and correct wiring)
 - Frontend with 7 pages: Landing, Issue, Prove, Vault, Governance, Revoke, plus NavBar
+- Per-wallet localStorage isolation (multi-wallet testing supported)
 - BIP39 mnemonic-based recoverable identity
-- Event-indexed Merkle tree via `indexer/` service (localStorage as fallback cache)
+- Event-indexed Merkle tree via `indexer/` service with HTTP polling fallback + CORS
 - Real Reclaim zkTLS attestation backend (`attestor/` service)
-- On-chain revocation enforcement **verified live** — `revokeRoot` → proof rejected
+- On-chain credential registration emitting `CredentialRegistered` events (indexer-visible)
+- On-chain revocation enforcement **verified live** — credential revoke from Revoke page works
+- Demo-mode open permissions: `updateRoot`, `setKycInfo`, `revoke` callable by any wallet
 - Custom M-of-N multisig contract for registry governance
 - NPM-publishable SDK with INTEGRATION.md + example consumer contract
 - MIT LICENSE added
-- Registry ownership transferred to user wallet (`0xECf5...`) for frontend `updateRoot` calls
 
 ### What's Working
 - Wallet connection via RainbowKit on HashKey Chain Testnet (chain 133)
@@ -257,6 +259,24 @@ The key insight: **separate the credential from the proof.** Credentials come fr
   - Console errors are only expected infra warnings (no indexer running, placeholder WalletConnect ID)
 - **4 redeployed contracts verified on Blockscout** (ZKFabricVerifier, GatedVault, PrivateGovernance auto-matched; RevocationRegistry verified)
 - **README polished** — removed "Production Hardening" section, integrated all features cohesively into architecture/data flow/tech choices
+
+### Verified on 2026-04-10
+- **Full frontend manual testing** — complete flow tested by user on HashKey Chain Testnet:
+  - Per-wallet localStorage isolation: switching wallets shows clean slate
+  - KYC self-registration on MockKycSBT (open permissions, auto-refetch after tx)
+  - KYC credential issuance with on-chain `registerComputedCredential` + `updateRoot`
+  - zkTLS credential issuance via attestor service (DEV MODE) + `submitAttestation` + `registerComputedCredential`
+  - Indexer picks up `CredentialRegistered` events via HTTP polling (WebSocket free-tier unsupported)
+  - Revoke page lists indexed credentials and revokes them on-chain
+- **7 contracts redeployed** for demo-mode open permissions and correct adapter→registry wiring:
+  - ZKFabricRegistry (`0x93415...`) — open `updateRoot`
+  - ZKFabricVerifier (`0x097f4...`) — wired to new registry + revocation
+  - RevocationRegistry (`0x43879...`) — open `revoke`/`revokeRoot`/`revokeNullifier`
+  - MockKycSBT (`0x566e1...`) — open `setKycInfo`
+  - KYCSBTAdapter (`0x4510e...`) — wired to new registry + new MockKycSBT
+  - ZKTLSAdapter (`0xFd631...`) — wired to new registry, attestor = deployer key
+  - GatedVault (`0xdA157...`) + PrivateGovernance (`0x4B42F...`) — wired to new verifier
+- **Indexer improvements**: CORS middleware added, HTTP polling fallback every 10s, correct registry address
 
 ---
 
@@ -415,9 +435,11 @@ real-product bar. Plan: `/home/emark/.claude/plans/crispy-purring-wozniak.md`.
 5. ~~**Verify contracts on Blockscout**~~ — **DONE** (2026-04-09)
 6. ~~**Playwright frontend testing**~~ — **DONE** (2026-04-09, all 6 routes verified)
 7. ~~**README polish for submission**~~ — **DONE** (2026-04-09)
-8. **Record demo video** — 4-minute screencast (required by hackathon):
+8. ~~**Full frontend manual testing**~~ — **DONE** (2026-04-10, 7 contracts redeployed, all flows working)
+9. **Record demo video** — 4-minute screencast (required by hackathon):
    - Connect → mnemonic backup → Register KYC → Issue credential → Prove (Gated Vault scope) → Vault deposit → Governance vote → Revoke credential → Revoked proof fails
-9. **Deploy multisig on testnet** (optional) — transfer ownership via `deploy-multisig.ts`
+10. **Verify redeployed contracts on Blockscout** — 7 new contracts need source verification
+11. **Deploy multisig on testnet** (optional) — transfer ownership via `deploy-multisig.ts`
 
 ### Lower Priority (Nice-to-Have)
 7. **W8: Multi-party trusted setup ceremony** — recruit 2 contributors, publish transcript
@@ -433,18 +455,17 @@ All deployed on **HashKey Chain Testnet (Chain ID: 133)** and **verified on Bloc
 | Contract | Address | Explorer |
 |---|---|---|
 | Groth16Verifier | `0x3a442161cb51555bab8f59351e5e1704e8200506` | [View](https://testnet-explorer.hsk.xyz/address/0x3a442161cb51555bab8f59351e5e1704e8200506#code) |
-| ZKFabricRegistry | `0xa1708C934175Bf7EaC25220D560BE0C681725957` | [View](https://testnet-explorer.hsk.xyz/address/0xa1708C934175Bf7EaC25220D560BE0C681725957#code) |
-| RevocationRegistry | `0x735680A32A0e5d9d23D7e8e8302F434e7F30428E` | [View](https://testnet-explorer.hsk.xyz/address/0x735680A32A0e5d9d23D7e8e8302F434e7F30428E#code) |
-| ZKFabricVerifier | `0xd49cA44645E21076dcd83F285D23c99AbeB6D299` | [View](https://testnet-explorer.hsk.xyz/address/0xd49cA44645E21076dcd83F285D23c99AbeB6D299#code) |
-| MockKycSBT | `0x335C915Fa62eeBF9804a4398bb85Cd370B333850` | [View](https://testnet-explorer.hsk.xyz/address/0x335C915Fa62eeBF9804a4398bb85Cd370B333850#code) |
-| KYCSBTAdapter | `0x3AfBFC76f49A4D466D03775B371a4F6142c6A194` | [View](https://testnet-explorer.hsk.xyz/address/0x3AfBFC76f49A4D466D03775B371a4F6142c6A194#code) |
-| ZKTLSAdapter | `0x310581957E11589F641199C3F7571A8eddEF38c8` | [View](https://testnet-explorer.hsk.xyz/address/0x310581957E11589F641199C3F7571A8eddEF38c8#code) |
+| ZKFabricRegistry | `0x93415BCDbAda30f06274c32fE7b713bF9AB460C1` | [View](https://testnet-explorer.hsk.xyz/address/0x93415BCDbAda30f06274c32fE7b713bF9AB460C1#code) |
+| RevocationRegistry | `0x4387911A3Dbd17C6083f75784c3121E01a207BD8` | [View](https://testnet-explorer.hsk.xyz/address/0x4387911A3Dbd17C6083f75784c3121E01a207BD8#code) |
+| ZKFabricVerifier | `0x097f440AECDD999ad6F33229a6cc24Ef27E85267` | [View](https://testnet-explorer.hsk.xyz/address/0x097f440AECDD999ad6F33229a6cc24Ef27E85267#code) |
+| MockKycSBT | `0x566e1F1B5bD7109F2C86805e2c092502D1B2f9f4` | [View](https://testnet-explorer.hsk.xyz/address/0x566e1F1B5bD7109F2C86805e2c092502D1B2f9f4#code) |
+| KYCSBTAdapter | `0x4510eA78880B7095f1f68F4E8029B776f3c8beA1` | [View](https://testnet-explorer.hsk.xyz/address/0x4510eA78880B7095f1f68F4E8029B776f3c8beA1#code) |
+| ZKTLSAdapter | `0xFd631dfa331088CEc9e1ecdC8678A456b721EbD1` | [View](https://testnet-explorer.hsk.xyz/address/0xFd631dfa331088CEc9e1ecdC8678A456b721EbD1#code) |
 | MockERC20 | `0x6670bB42279832548E976Fc9f2ddEbA6A03539F8` | [View](https://testnet-explorer.hsk.xyz/address/0x6670bB42279832548E976Fc9f2ddEbA6A03539F8#code) |
-| GatedVault | `0x6C1F9466db7Bc2364b0baC051E73421d5b75354B` | [View](https://testnet-explorer.hsk.xyz/address/0x6C1F9466db7Bc2364b0baC051E73421d5b75354B#code) |
-| PrivateGovernance | `0x2D036e311A6f11f8ABd191276Fd381Df55fbE224` | [View](https://testnet-explorer.hsk.xyz/address/0x2D036e311A6f11f8ABd191276Fd381Df55fbE224#code) |
+| GatedVault | `0xdA1572E9E8466e04A160AF33AD29B569117Be7Be` | [View](https://testnet-explorer.hsk.xyz/address/0xdA1572E9E8466e04A160AF33AD29B569117Be7Be#code) |
+| PrivateGovernance | `0x4B42F27BA0ce81Be19B5FCe4bb1B1E6dbDE6f2A9` | [View](https://testnet-explorer.hsk.xyz/address/0x4B42F27BA0ce81Be19B5FCe4bb1B1E6dbDE6f2A9#code) |
 
-**Deployer Address:** `0xB4CA33B33EEA1E0D6F39Aff7761709a9D6Ba350e`
-**Registry Owner:** `0xECf5e30F091D1db7c7b0ef26634a71d46DC9Bb25` (transferred from deployer for frontend `updateRoot` calls)
+**Deployer/Owner:** `0xECf5e30F091D1db7c7b0ef26634a71d46DC9Bb25`
 
 ---
 

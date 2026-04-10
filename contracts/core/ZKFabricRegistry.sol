@@ -68,8 +68,9 @@ contract ZKFabricRegistry is Ownable {
     }
 
     /// @notice Update the Merkle root after off-chain tree changes.
-    /// @dev Called by the owner or an authorized service after adding credentials to the off-chain tree.
-    function updateRoot(uint256 newRoot) external onlyOwner {
+    /// @dev Open to any caller so that any user can issue credentials in the demo.
+    ///      In production, restrict to owner/adapters/multisig.
+    function updateRoot(uint256 newRoot) external {
         require(newRoot != 0, "ZKFabricRegistry: zero root");
 
         uint256 oldRoot = currentRoot;

@@ -362,8 +362,8 @@ import { ZKFabric } from '@zkfabric/sdk';
 const fabric = new ZKFabric({
   chainId: 133,
   rpcUrl: 'https://testnet.hsk.xyz',
-  registryAddress: '0xa1708C934175Bf7EaC25220D560BE0C681725957', // ZKFabricRegistry
-  verifierAddress: '0xd49cA44645E21076dcd83F285D23c99AbeB6D299', // ZKFabricVerifier
+  registryAddress: '0x93415BCDbAda30f06274c32fE7b713bF9AB460C1', // ZKFabricRegistry
+  verifierAddress: '0x097f440AECDD999ad6F33229a6cc24Ef27E85267', // ZKFabricVerifier
 });
 
 // Define what you need to know (not WHO they are)
@@ -681,15 +681,15 @@ npm run dev
 | Contract | Address | Explorer |
 |----------|---------|----------|
 | `Groth16Verifier` | `0x3a442161cb51555bab8F59351e5E1704e8200506` | [View](https://testnet-explorer.hsk.xyz/address/0x3a442161cb51555bab8F59351e5E1704e8200506) |
-| `ZKFabricRegistry` | `0xa1708C934175Bf7EaC25220D560BE0C681725957` | [View](https://testnet-explorer.hsk.xyz/address/0xa1708C934175Bf7EaC25220D560BE0C681725957) |
-| `RevocationRegistry` | `0x735680A32A0e5d9d23D7e8e8302F434e7F30428E` | [View](https://testnet-explorer.hsk.xyz/address/0x735680A32A0e5d9d23D7e8e8302F434e7F30428E) |
-| `ZKFabricVerifier` | `0xd49cA44645E21076dcd83F285D23c99AbeB6D299` | [View](https://testnet-explorer.hsk.xyz/address/0xd49cA44645E21076dcd83F285D23c99AbeB6D299) |
-| `MockKycSBT` | `0x335C915Fa62eeBF9804a4398bb85Cd370B333850` | [View](https://testnet-explorer.hsk.xyz/address/0x335C915Fa62eeBF9804a4398bb85Cd370B333850) |
-| `KYCSBTAdapter` | `0x3AfBFC76f49A4D466D03775B371a4F6142c6A194` | [View](https://testnet-explorer.hsk.xyz/address/0x3AfBFC76f49A4D466D03775B371a4F6142c6A194) |
-| `ZKTLSAdapter` | `0x310581957E11589F641199C3F7571A8eddEF38c8` | [View](https://testnet-explorer.hsk.xyz/address/0x310581957E11589F641199C3F7571A8eddEF38c8) |
+| `ZKFabricRegistry` | `0x93415BCDbAda30f06274c32fE7b713bF9AB460C1` | [View](https://testnet-explorer.hsk.xyz/address/0x93415BCDbAda30f06274c32fE7b713bF9AB460C1) |
+| `RevocationRegistry` | `0x4387911A3Dbd17C6083f75784c3121E01a207BD8` | [View](https://testnet-explorer.hsk.xyz/address/0x4387911A3Dbd17C6083f75784c3121E01a207BD8) |
+| `ZKFabricVerifier` | `0x097f440AECDD999ad6F33229a6cc24Ef27E85267` | [View](https://testnet-explorer.hsk.xyz/address/0x097f440AECDD999ad6F33229a6cc24Ef27E85267) |
+| `MockKycSBT` | `0x566e1F1B5bD7109F2C86805e2c092502D1B2f9f4` | [View](https://testnet-explorer.hsk.xyz/address/0x566e1F1B5bD7109F2C86805e2c092502D1B2f9f4) |
+| `KYCSBTAdapter` | `0x4510eA78880B7095f1f68F4E8029B776f3c8beA1` | [View](https://testnet-explorer.hsk.xyz/address/0x4510eA78880B7095f1f68F4E8029B776f3c8beA1) |
+| `ZKTLSAdapter` | `0xFd631dfa331088CEc9e1ecdC8678A456b721EbD1` | [View](https://testnet-explorer.hsk.xyz/address/0xFd631dfa331088CEc9e1ecdC8678A456b721EbD1) |
 | `MockERC20` | `0x6670bB42279832548E976Fc9f2ddEbA6A03539F8` | [View](https://testnet-explorer.hsk.xyz/address/0x6670bB42279832548E976Fc9f2ddEbA6A03539F8) |
-| `GatedVault` | `0x6C1F9466db7Bc2364b0baC051E73421d5b75354B` | [View](https://testnet-explorer.hsk.xyz/address/0x6C1F9466db7Bc2364b0baC051E73421d5b75354B) |
-| `PrivateGovernance` | `0x2D036e311A6f11f8ABd191276Fd381Df55fbE224` | [View](https://testnet-explorer.hsk.xyz/address/0x2D036e311A6f11f8ABd191276Fd381Df55fbE224) |
+| `GatedVault` | `0xdA1572E9E8466e04A160AF33AD29B569117Be7Be` | [View](https://testnet-explorer.hsk.xyz/address/0xdA1572E9E8466e04A160AF33AD29B569117Be7Be) |
+| `PrivateGovernance` | `0x4B42F27BA0ce81Be19B5FCe4bb1B1E6dbDE6f2A9` | [View](https://testnet-explorer.hsk.xyz/address/0x4B42F27BA0ce81Be19B5FCe4bb1B1E6dbDE6f2A9) |
 
 ---
 

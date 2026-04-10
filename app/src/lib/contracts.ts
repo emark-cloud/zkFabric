@@ -1,13 +1,13 @@
 // Deployed contract addresses — update after testnet deployment
 export const CONTRACTS = {
-  registry: "0xa1708C934175Bf7EaC25220D560BE0C681725957" as `0x${string}`,
-  verifier: "0xd49cA44645E21076dcd83F285D23c99AbeB6D299" as `0x${string}`,
-  revocation: "0x735680A32A0e5d9d23D7e8e8302F434e7F30428E" as `0x${string}`,
-  kycSBT: "0x335C915Fa62eeBF9804a4398bb85Cd370B333850" as `0x${string}`,
-  kycAdapter: "0x3AfBFC76f49A4D466D03775B371a4F6142c6A194" as `0x${string}`,
-  zktlsAdapter: "0x310581957E11589F641199C3F7571A8eddEF38c8" as `0x${string}`,
-  gatedVault: "0x6C1F9466db7Bc2364b0baC051E73421d5b75354B" as `0x${string}`,
-  governance: "0x2D036e311A6f11f8ABd191276Fd381Df55fbE224" as `0x${string}`,
+  registry: "0x93415BCDbAda30f06274c32fE7b713bF9AB460C1" as `0x${string}`,
+  verifier: "0x097f440AECDD999ad6F33229a6cc24Ef27E85267" as `0x${string}`,
+  revocation: "0x4387911A3Dbd17C6083f75784c3121E01a207BD8" as `0x${string}`,
+  kycSBT: "0x566e1F1B5bD7109F2C86805e2c092502D1B2f9f4" as `0x${string}`,
+  kycAdapter: "0x4510eA78880B7095f1f68F4E8029B776f3c8beA1" as `0x${string}`,
+  zktlsAdapter: "0xFd631dfa331088CEc9e1ecdC8678A456b721EbD1" as `0x${string}`,
+  gatedVault: "0xdA1572E9E8466e04A160AF33AD29B569117Be7Be" as `0x${string}`,
+  governance: "0x4B42F27BA0ce81Be19B5FCe4bb1B1E6dbDE6f2A9" as `0x${string}`,
   mockERC20: "0x6670bB42279832548E976Fc9f2ddEbA6A03539F8" as `0x${string}`,
 } as const;
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import {
+  setActiveWallet,
   loadIdentity,
   loadCredentials,
   loadTree,
@@ -18,7 +19,7 @@ import { CredentialCard } from "@/components/CredentialCard";
 import { ProofBuilder } from "@/components/ProofBuilder";
 
 export default function ProvePage() {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [tree, setTree] = useState<CredentialTree | null>(null);
@@ -38,6 +39,7 @@ export default function ProvePage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    setActiveWallet(address);
     setIdentity(loadIdentity());
     setCredentials(loadCredentials());
     setLeafIndices(loadLeafIndices());
@@ -55,7 +57,7 @@ export default function ProvePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [address]);
 
   const selectedCred = credentials.find((c) => c.id === selectedCredId);
 

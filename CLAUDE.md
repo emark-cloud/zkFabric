@@ -142,7 +142,7 @@ HashKey Chain's Cloudflare-fronted RPC (`testnet.hsk.xyz`) has IPv6/IPv4 routing
 - **Submission Requirements**: GitHub repo with deployed HashKey Chain contract address in README, short demo video, clean git history from hackathon start (Mar 10)
 - **Winners must complete KYC verification**
 
-## Implementation Status (as of 2026-04-09)
+## Implementation Status (as of 2026-04-10)
 - **Phase 0**: COMPLETE — project scaffolding, toolchain, hello-world circuit
 - **Phase 1**: COMPLETE — all sub-circuits + main selective_disclosure circuit (9,993 constraints, 12/12 tests passing), Groth16Verifier.sol auto-generated
 - **Phase 2**: COMPLETE — all smart contracts (Registry, Verifier, RevocationRegistry, KYCSBTAdapter, ZKTLSAdapter, GatedVault, PrivateGovernance, MockKycSBT, MockERC20), 28 contract tests passing
@@ -150,7 +150,7 @@ HashKey Chain's Cloudflare-fronted RPC (`testnet.hsk.xyz`) has IPv6/IPv4 routing
 - **Phase 4**: COMPLETE — Next.js 16 frontend (landing, issue, prove, vault, governance, revoke pages), RainbowKit + wagmi for HashKey Chain
 - **Phase 5**: COMPLETE — e2e integration tests (2 passing), all 65 tests green, deployed to HashKey Chain Testnet, BN128 field overflow + Groth16 pi_b ordering bugs fixed
 - **Production Hardening (W1–W7)**: COMPLETE — on-chain revocation enforcement (smoke-tested live), event-indexed tree + BIP39 recovery, Reclaim attestor backend, threshold multisig contract, PrivateGovernance UI, NPM SDK metadata + INTEGRATION.md, revocation dashboard + atomic KYC ingest
-- **Live Verification**: 9-step E2E test passing on live testnet (`scripts/e2e-testnet.ts`), all 6 frontend pages visually verified via Playwright, 4 redeployed contracts verified on Blockscout, README polished for submission
+- **Frontend Testing (2026-04-10)**: Full manual testing pass — per-wallet storage isolation, open demo permissions (updateRoot, setKycInfo, revoke), redeployed 7 contracts with correct adapter→registry wiring, on-chain credential registration (CredentialRegistered events), indexer CORS + polling fallback, credential revocation verified live
 
 ## Research Findings (2026-04-05)
 - **BN128 precompiles**: Confirmed working on OP Stack L2s. Groth16 on-chain verification is safe on HashKey Chain.
@@ -164,13 +164,13 @@ HashKey Chain's Cloudflare-fronted RPC (`testnet.hsk.xyz`) has IPv6/IPv4 routing
 
 ## Deployed Contract Addresses (HashKey Chain Testnet, Chain 133)
 - Groth16Verifier: `0x3a442161cb51555bab8f59351e5e1704e8200506`
-- ZKFabricRegistry: `0xa1708C934175Bf7EaC25220D560BE0C681725957`
-- RevocationRegistry: `0x735680A32A0e5d9d23D7e8e8302F434e7F30428E`
-- ZKFabricVerifier: `0xd49cA44645E21076dcd83F285D23c99AbeB6D299`
-- MockKycSBT: `0x335C915Fa62eeBF9804a4398bb85Cd370B333850`
-- KYCSBTAdapter: `0x3AfBFC76f49A4D466D03775B371a4F6142c6A194`
-- ZKTLSAdapter: `0x310581957E11589F641199C3F7571A8eddEF38c8`
+- ZKFabricRegistry: `0x93415BCDbAda30f06274c32fE7b713bF9AB460C1`
+- RevocationRegistry: `0x4387911A3Dbd17C6083f75784c3121E01a207BD8`
+- ZKFabricVerifier: `0x097f440AECDD999ad6F33229a6cc24Ef27E85267`
+- MockKycSBT: `0x566e1F1B5bD7109F2C86805e2c092502D1B2f9f4`
+- KYCSBTAdapter: `0x4510eA78880B7095f1f68F4E8029B776f3c8beA1`
+- ZKTLSAdapter: `0xFd631dfa331088CEc9e1ecdC8678A456b721EbD1`
 - MockERC20: `0x6670bB42279832548E976Fc9f2ddEbA6A03539F8`
-- GatedVault: `0x6C1F9466db7Bc2364b0baC051E73421d5b75354B`
-- PrivateGovernance: `0x2D036e311A6f11f8ABd191276Fd381Df55fbE224`
+- GatedVault: `0xdA1572E9E8466e04A160AF33AD29B569117Be7Be`
+- PrivateGovernance: `0x4B42F27BA0ce81Be19B5FCe4bb1B1E6dbDE6f2A9`
 - Registry Owner: `0xECf5e30F091D1db7c7b0ef26634a71d46DC9Bb25`

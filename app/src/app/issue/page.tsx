@@ -9,6 +9,7 @@ import {
   packZktlsSlots,
   CredentialTree,
   CredentialType,
+  setActiveWallet,
   saveIdentity,
   loadIdentity,
   saveCredentials,
@@ -56,8 +57,10 @@ export default function IssuePage() {
   const [restoreInput, setRestoreInput] = useState("");
 
   useEffect(() => {
+    setActiveWallet(address);
     const id = loadIdentity();
     if (id) setIdentity(id);
+    else setIdentity(null);
     setCredentials(loadCredentials());
     setLeafIndices(loadLeafIndices());
     setHasMnemonic(loadMnemonic() !== null);
@@ -75,9 +78,9 @@ export default function IssuePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [address]);
 
-  const { data: kycData } = useReadContract({
+  const { data: kycData, refetch: refetchKyc } = useReadContract({
     address: CONTRACTS.kycSBT,
     abi: KYC_SBT_ABI,
     functionName: "getKycInfo",
@@ -90,6 +93,8 @@ export default function IssuePage() {
   const { isSuccess: ingestConfirmed } = useWaitForTransactionReceipt({ hash: ingestTxHash });
   const { isSuccess: registerConfirmed } = useWaitForTransactionReceipt({ hash: registerTxHash });
 
+  const { writeContract: submitZktlsAttestation, data: zktlsSubmitTxHash } = useWriteContract();
+  const { isSuccess: zktlsSubmitConfirmed } = useWaitForTransactionReceipt({ hash: zktlsSubmitTxHash });
   const { writeContract: registerZktlsHash, data: zktlsRegisterTxHash } = useWriteContract();
   const { isSuccess: zktlsRegisterConfirmed } = useWaitForTransactionReceipt({ hash: zktlsRegisterTxHash });
 
@@ -100,6 +105,11 @@ export default function IssuePage() {
   // Set KYC on MockKycSBT
   const { writeContract: setKyc, data: setKycTxHash } = useWriteContract();
   const { isSuccess: setKycConfirmed } = useWaitForTransactionReceipt({ hash: setKycTxHash });
+
+  // Auto-refetch KYC data after setKycInfo tx confirms
+  useEffect(() => {
+    if (setKycConfirmed) refetchKyc();
+  }, [setKycConfirmed, refetchKyc]);
 
   const kycInfo: KycInfo | null = kycData
     ? {
@@ -201,13 +211,22 @@ export default function IssuePage() {
       };
 
       persistCredential(credential, tree);
-      setStatus("Credential created! Updating Merkle root on-chain — please confirm the transaction...");
+
+      // Register credential hash on-chain via adapter → registry (emits CredentialRegistered)
+      registerHash({
+        address: CONTRACTS.kycAdapter,
+        abi: KYC_ADAPTER_ABI,
+        functionName: "registerComputedCredential",
+        args: [identity.commitment, credentialHash],
+      });
+
+      setStatus("Credential created! Confirm the transactions (registerCredential + updateRoot)...");
     } catch (err: any) {
       setStatus("Error: " + err.message);
     } finally {
       setIsProcessing(false);
     }
-  }, [identity, kycInfo, tree, address, ingestOnChain, persistCredential]);
+  }, [identity, kycInfo, tree, address, registerHash, persistCredential]);
 
   const handleIssueZktls = useCallback(async () => {
     if (!identity || !tree || !address) return;
@@ -244,7 +263,7 @@ export default function IssuePage() {
       const credentialHash = computeCredentialHash(identity.commitment, slots);
 
       setStatus("Submitting signed attestation on-chain...");
-      registerZktlsHash({
+      submitZktlsAttestation({
         address: CONTRACTS.zktlsAdapter,
         abi: ZKTLS_ADAPTER_ABI,
         functionName: "submitAttestation",
@@ -268,7 +287,7 @@ export default function IssuePage() {
     } finally {
       setIsProcessing(false);
     }
-  }, [identity, tree, address, persistCredential, registerZktlsHash]);
+  }, [identity, tree, address, persistCredential, submitZktlsAttestation]);
 
   useEffect(() => {
     if (ingestConfirmed && credentials.length > 0) {
@@ -286,6 +305,21 @@ export default function IssuePage() {
   useEffect(() => {
     if (registerConfirmed) setStatus("Credential fully registered on-chain!");
   }, [registerConfirmed]);
+
+  useEffect(() => {
+    if (zktlsSubmitConfirmed && credentials.length > 0) {
+      const latest = credentials[credentials.length - 1];
+      if (latest.type === CredentialType.ZKTLS) {
+        setStatus("Attestation confirmed! Now registering credential hash...");
+        registerZktlsHash({
+          address: CONTRACTS.zktlsAdapter,
+          abi: ZKTLS_ADAPTER_ABI,
+          functionName: "registerComputedCredential",
+          args: [identity!.commitment, latest.credentialHash],
+        });
+      }
+    }
+  }, [zktlsSubmitConfirmed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (zktlsRegisterConfirmed) setStatus("zkTLS credential registered on-chain!");
@@ -498,7 +532,7 @@ export default function IssuePage() {
                 {setKycConfirmed && (
                   <p className="text-sm text-green-400 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-green-400 animate-dot-pulse inline-block" />
-                    KYC registered! Refresh the page to see your status.
+                    KYC registered on-chain!
                   </p>
                 )}
               </div>

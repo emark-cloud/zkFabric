@@ -49,19 +49,31 @@ export type { Identity, Credential, MerkleProof, Predicate, KycInfo, ZKTLSAttest
 export const WASM_PATH = "/circuits/selective_disclosure.wasm";
 export const ZKEY_PATH = "/circuits/selective_disclosure_final.zkey";
 
-// Local storage keys
-const STORAGE_KEY_IDENTITY = "zkfabric_identity";
-const STORAGE_KEY_MNEMONIC = "zkfabric_mnemonic";
-const STORAGE_KEY_CREDENTIALS = "zkfabric_credentials";
+// Local storage keys — per-wallet (keyed by address) except tree which is global.
+// The active wallet address is set via setActiveWallet() when the connected
+// account changes.  All load/save helpers read from this module-level variable.
+let _activeWallet: string = "";
 const STORAGE_KEY_TREE = "zkfabric_tree";
-const STORAGE_KEY_LEAF_INDICES = "zkfabric_leaf_indices";
+
+function walletKey(base: string): string {
+  const suffix = _activeWallet ? `_${_activeWallet.toLowerCase()}` : "";
+  return `zkfabric_${base}${suffix}`;
+}
+
+/**
+ * Set the active wallet address. Call this whenever the connected account
+ * changes so that all subsequent load/save calls are scoped to that wallet.
+ */
+export function setActiveWallet(address: string | undefined): void {
+  _activeWallet = address ?? "";
+}
 
 /**
  * Save identity to localStorage.
  */
 export function saveIdentity(identity: Identity): void {
   localStorage.setItem(
-    STORAGE_KEY_IDENTITY,
+    walletKey("identity"),
     JSON.stringify({
       privateKey: identity.privateKey.toString(),
       commitment: identity.commitment.toString(),
@@ -73,7 +85,7 @@ export function saveIdentity(identity: Identity): void {
  * Load identity from localStorage.
  */
 export function loadIdentity(): Identity | null {
-  const raw = localStorage.getItem(STORAGE_KEY_IDENTITY);
+  const raw = localStorage.getItem(walletKey("identity"));
   if (!raw) return null;
   const data = JSON.parse(raw);
   return {
@@ -94,14 +106,14 @@ export function saveCredentials(credentials: Credential[]): void {
     slots: c.slots.map(String),
     createdAt: c.createdAt,
   }));
-  localStorage.setItem(STORAGE_KEY_CREDENTIALS, JSON.stringify(serialized));
+  localStorage.setItem(walletKey("credentials"), JSON.stringify(serialized));
 }
 
 /**
  * Load credentials from localStorage.
  */
 export function loadCredentials(): Credential[] {
-  const raw = localStorage.getItem(STORAGE_KEY_CREDENTIALS);
+  const raw = localStorage.getItem(walletKey("credentials"));
   if (!raw) return [];
   const data = JSON.parse(raw);
   return data.map((c: any) => ({
@@ -135,7 +147,7 @@ export function loadTree(): CredentialTree | null {
  */
 export function saveLeafIndices(indices: Map<string, number>): void {
   localStorage.setItem(
-    STORAGE_KEY_LEAF_INDICES,
+    walletKey("leaf_indices"),
     JSON.stringify(Array.from(indices.entries()))
   );
 }
@@ -144,20 +156,20 @@ export function saveLeafIndices(indices: Map<string, number>): void {
  * Load leaf index mapping.
  */
 export function loadLeafIndices(): Map<string, number> {
-  const raw = localStorage.getItem(STORAGE_KEY_LEAF_INDICES);
+  const raw = localStorage.getItem(walletKey("leaf_indices"));
   if (!raw) return new Map();
   return new Map(JSON.parse(raw));
 }
 
 /**
- * Clear all stored state.
+ * Clear all stored state for the active wallet.
  */
 export function clearAll(): void {
-  localStorage.removeItem(STORAGE_KEY_IDENTITY);
-  localStorage.removeItem(STORAGE_KEY_MNEMONIC);
-  localStorage.removeItem(STORAGE_KEY_CREDENTIALS);
+  localStorage.removeItem(walletKey("identity"));
+  localStorage.removeItem(walletKey("mnemonic"));
+  localStorage.removeItem(walletKey("credentials"));
   localStorage.removeItem(STORAGE_KEY_TREE);
-  localStorage.removeItem(STORAGE_KEY_LEAF_INDICES);
+  localStorage.removeItem(walletKey("leaf_indices"));
 }
 
 // ============================================================================
@@ -169,11 +181,11 @@ export function clearAll(): void {
  * The mnemonic is the source of truth — `Identity` is derived from it.
  */
 export function saveMnemonic(mnemonic: string): void {
-  localStorage.setItem(STORAGE_KEY_MNEMONIC, mnemonic);
+  localStorage.setItem(walletKey("mnemonic"), mnemonic);
 }
 
 export function loadMnemonic(): string | null {
-  return localStorage.getItem(STORAGE_KEY_MNEMONIC);
+  return localStorage.getItem(walletKey("mnemonic"));
 }
 
 /**

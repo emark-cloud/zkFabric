@@ -28,6 +28,7 @@ import {
   type PublicClient,
 } from "viem";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 
 // ----------------------------------------------------------------------------
@@ -197,6 +198,7 @@ function startWatcher(client: PublicClient): () => void {
 // ----------------------------------------------------------------------------
 
 const app = new Hono();
+app.use("*", cors());
 
 app.get("/health", (c) =>
   c.json({
@@ -233,13 +235,35 @@ app.get("/root", async (c) => {
 // Bootstrap
 // ----------------------------------------------------------------------------
 
+const POLL_INTERVAL = Number(process.env.POLL_INTERVAL ?? 10_000); // 10s default
+
+async function pollLoop() {
+  while (true) {
+    try {
+      const head = await httpClient.getBlockNumber();
+      const from = BigInt(state.lastBlock) + 1n;
+      if (from <= head) {
+        await backfill(head);
+      }
+    } catch (err) {
+      console.error("[indexer] poll error:", err);
+    }
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+  }
+}
+
 async function main() {
   const head = await httpClient.getBlockNumber();
   await backfill(head);
 
+  // Try WebSocket watcher; fall back to HTTP polling if it errors
   const watcherClient = wsClient ?? httpClient;
   startWatcher(watcherClient);
   console.log(`[indexer] watching live events on chain ${CHAIN_ID}`);
+
+  // Always run polling as a fallback (handles WS failures on free-tier RPCs)
+  pollLoop();
+  console.log(`[indexer] polling every ${POLL_INTERVAL / 1000}s as fallback`);
 
   serve({ fetch: app.fetch, port: PORT }, (info) => {
     console.log(`[indexer] HTTP listening on http://0.0.0.0:${info.port}`);
