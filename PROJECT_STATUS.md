@@ -1,6 +1,6 @@
 # zkFabric — Project Status & Comprehensive Overview
 
-**Last Updated:** 2026-04-10 (full frontend manual testing, 7 contracts redeployed, per-wallet isolation, indexer polling, credential revocation verified, tree sync race condition fixed, project documentation added)
+**Last Updated:** 2026-04-11 (demo video script, competitor analysis, README trimmed)
 **Author:** emark-cloud (solo developer)
 **Hackathon:** HashKey Chain On-Chain Horizon Hackathon 2026 — ZKID Track ($10K prize pool)
 
@@ -198,12 +198,15 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 30. ✅ Indexer CORS + HTTP polling fallback (WebSocket free-tier unsupported on drpc.org)
 31. ✅ Tree sync race condition fix — merge local credentials into synced tree + defensive re-add on prove page
 32. ✅ Project documentation — `docs/WHAT_IS_ZKFABRIC.md` and `docs/DEMO_FLOW.md`
+33. ✅ Demo video script — `docs/DEMO_SCRIPT.md` (4-minute timed script with recording tips and pre-recording checklist)
+34. ✅ Competitor analysis — `docs/COMPETITOR_ANALYSIS.md` (zkFabric vs zk-creditscore vs Trust, scoring matrix, borrowable ideas)
+35. ✅ README trimmed — removed Smart Contract Architecture, Circuit Architecture, and Demo Application sections to reduce length
 
 ---
 
 ## Where We Are Now
 
-**Current State: All 5 phases + W1–W7 production hardening complete. Full frontend manual testing pass on 2026-04-10 with 7 contracts redeployed.**
+**Current State: All 5 phases + W1–W7 production hardening complete. Full frontend manual testing pass on 2026-04-10 with 7 contracts redeployed. Demo script + competitor analysis added 2026-04-11. README trimmed for submission.**
 
 - All 65 tests passing (12 circuit + 28 contract + 18 SDK + 2 e2e + 5 new)
 - 17 contracts deployed on HashKey Chain Testnet (10 original + 7 redeployed for demo-mode permissions and correct wiring)
@@ -278,7 +281,7 @@ The key insight: **separate the credential from the proof.** Credentials come fr
   - GatedVault (`0xdA157...`) + PrivateGovernance (`0x4B42F...`) — wired to new verifier
 - **Indexer improvements**: CORS middleware added, HTTP polling fallback every 10s, correct registry address
 - **Tree sync race condition fixed**: `syncTreeFromIndexer` on issue page could overwrite local tree before indexer caught up with newly-minted credentials. Fixed by merging local credentials into synced tree (issue page) and defensively re-adding missing credentials on prove page.
-- **Project documentation added**: `docs/WHAT_IS_ZKFABRIC.md` (plain-language explainer) and `docs/DEMO_FLOW.md` (step-by-step demo walkthrough with on-chain details and dApp integration examples)
+- **Project documentation added**: `docs/WHAT_IS_ZKFABRIC.md` (plain-language explainer), `docs/DEMO_FLOW.md` (step-by-step demo walkthrough), `docs/DEMO_SCRIPT.md` (4-minute video script), `docs/COMPETITOR_ANALYSIS.md` (comparison vs zk-creditscore and Trust)
 
 ---
 
@@ -540,10 +543,9 @@ Stored in `/home/emark/.claude/projects/-home-emark-hashkey/memory/`:
 
 ### Reclaim Protocol Strategy (`project_reclaim_strategy.md`)
 - Reclaim uses signature-based attestation (ECDSA), NOT Groth16 proofs
-- Almost certainly NOT deployed on HashKey Chain testnet (chain 133)
-- Current approach: Mock adapter for demo
-- Production approach: Off-chain Reclaim verification → pack into 8-slot Poseidon commitment → selective disclosure via Groth16 circuit
-- Alternative: Deploy Reclaim's verifier contract from their `verifier-solidity-sdk` GitHub repo
+- NOT deployed on HashKey Chain testnet (chain 133)
+- **Implemented**: Backend attestor service (`attestor/`) verifies Reclaim proofs server-side and signs for `ZKTLSAdapter.submitAttestation`. `ATTESTOR_DEV_MODE=1` bypasses Reclaim verification for local demos.
+- Production flow: Off-chain Reclaim verification → pack into 8-slot Poseidon commitment → selective disclosure via Groth16 circuit
 
 ---
 
