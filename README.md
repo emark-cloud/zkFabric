@@ -10,6 +10,7 @@
 [![Groth16](https://img.shields.io/badge/Groth16-snarkjs-blue?style=flat-square)](https://github.com/iden3/snarkjs)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
+**Live demo:** [zk-fabric.vercel.app](https://zk-fabric.vercel.app)
 **Contracts:** Deployed on HashKey Chain Testnet (Chain ID: 133) — all 10 core contracts verified on Blockscout
 **Built for:** [HashKey Chain On-Chain Horizon Hackathon 2026](https://dorahacks.io/hackathon/2045) — ZKID Track ($10K Prize Pool)
 **Integration guide:** [`INTEGRATION.md`](./INTEGRATION.md) — ~60 lines of Solidity + ~40 lines of TypeScript to gate any dApp on zkFabric

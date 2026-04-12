@@ -206,12 +206,15 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 35. ✅ README trimmed — removed Smart Contract Architecture, Circuit Architecture, and Demo Application sections to reduce length
 36. ✅ Frontend UX polish — Toast notifications, StepIndicator, proof substep progress, ConfirmDialog for revocation, EmptyState components, CSS-only tooltips, landing page blob animations + cursor blink
 37. ✅ Humanized technical details — ProofBuilder rewritten with natural-language dropdowns (KYC level/status/jurisdiction) replacing raw slot/operator/value editor. CredentialCard shows "PREMIUM", "Active", "Hong Kong", readable dates instead of raw BigInts. VaultDashboard scope card replaced with "Access Requirement: KYC PREMIUM+". Error messages user-friendly across vault/governance/revoke. Prove page scope input shows "Gated Vault" label. Identity commitment truncated with helper text. Revoke page description in plain English.
+38. ✅ Landing page redesigned — Added problem statement, use cases ("What dApps See"), "Native to HashKey Chain" section, expanded "Under the Hood" (6 items). Plain-language descriptions for general audiences.
+39. ✅ Governance page — Filtered out test proposals (id < 2) so demo starts with clean slate.
+40. ✅ Deployed to production — Frontend on Vercel (`zk-fabric.vercel.app`), indexer on Railway (`zkfabric-production.up.railway.app`), attestor on Railway (`zkfabric-production-5f45.up.railway.app`). SDK `@sdk/*` path alias for Turbopack compatibility. Circuit artifacts (wasm + zkey) committed to repo for Vercel builds.
 
 ---
 
 ## Where We Are Now
 
-**Current State: All 5 phases + W1–W7 production hardening complete. Full frontend manual testing pass on 2026-04-10 with 7 contracts redeployed. Frontend UX polish + humanized technical details complete (2026-04-12). All developer-facing raw values replaced with user-friendly labels and plain language.**
+**Current State: All 5 phases + W1–W7 production hardening complete. Frontend deployed to Vercel (`zk-fabric.vercel.app`), indexer + attestor on Railway. Landing page redesigned for general audiences. All developer-facing raw values replaced with user-friendly labels and plain language.**
 
 - All 65 tests passing (12 circuit + 28 contract + 18 SDK + 2 e2e + 5 new)
 - 17 contracts deployed on HashKey Chain Testnet (10 original + 7 redeployed for demo-mode permissions and correct wiring)
@@ -226,6 +229,9 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 - Custom M-of-N multisig contract for registry governance
 - NPM-publishable SDK with INTEGRATION.md + example consumer contract
 - MIT LICENSE added
+- **Frontend deployed to Vercel**: `https://zk-fabric.vercel.app`
+- **Indexer deployed to Railway**: `https://zkfabric-production.up.railway.app`
+- **Attestor deployed to Railway**: `https://zkfabric-production-5f45.up.railway.app`
 
 ### What's Working
 - Wallet connection via RainbowKit on HashKey Chain Testnet (chain 133)
@@ -446,10 +452,13 @@ real-product bar. Plan: `/home/emark/.claude/plans/crispy-purring-wozniak.md`.
 6. ~~**Playwright frontend testing**~~ — **DONE** (2026-04-09, all 6 routes verified)
 7. ~~**README polish for submission**~~ — **DONE** (2026-04-09)
 8. ~~**Full frontend manual testing**~~ — **DONE** (2026-04-10, 7 contracts redeployed, all flows working)
-9. **Record demo video** — 4-minute screencast (required by hackathon):
+9. ~~**Landing page redesign + UX polish**~~ — **DONE** (2026-04-12, explanatory sections for general audiences, toast notifications, step indicators, proof substeps, confirmation dialogs)
+10. ~~**Deploy frontend + services**~~ — **DONE** (2026-04-12, Vercel frontend at zk-fabric.vercel.app, Railway indexer + attestor)
+11. ~~**Demo script rewrite**~~ — **DONE** (2026-04-12, simplified language, multisig mentions, updated for new landing page)
+12. **Record demo video** — 4-minute screencast (required by hackathon):
    - Connect → mnemonic backup → Register KYC → Issue credential → Prove (Gated Vault scope) → Vault deposit → Governance vote → Revoke credential → Revoked proof fails
-10. **Verify redeployed contracts on Blockscout** — 7 new contracts need source verification
-11. **Deploy multisig on testnet** (optional) — transfer ownership via `deploy-multisig.ts`
+13. **Verify redeployed contracts on Blockscout** — 7 new contracts need source verification
+14. **Deploy multisig on testnet** (optional) — transfer ownership via `deploy-multisig.ts`
 
 ### Lower Priority (Nice-to-Have)
 7. **W8: Multi-party trusted setup ceremony** — recruit 2 contributors, publish transcript
@@ -694,7 +703,7 @@ CLAUDE.md                              # Full development guide + chain details 
 | 2026-04-09 | 9-step live testnet E2E, Playwright frontend testing, README polish, 4 contracts verified on Blockscout |
 | 2026-04-10 | Full frontend manual testing, 7 contracts redeployed, tree sync fix, project docs (WHAT_IS_ZKFABRIC.md, DEMO_FLOW.md) |
 | 2026-04-11 | Demo video script, competitor analysis, README trimmed |
-| 2026-04-12 | **TODAY** — Frontend UX polish, humanized technical details (ProofBuilder rewrite, CredentialCard labels, user-friendly errors) |
+| 2026-04-12 | **TODAY** — Landing page redesign, Vercel + Railway deployment, frontend UX polish, humanized technical details |
 | 2026-04-14 | Demo submission opens + project pre-screening |
 | 2026-04-15 | Registration deadline |
 | 2026-04-16 | Official pitch |
