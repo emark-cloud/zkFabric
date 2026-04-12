@@ -142,7 +142,7 @@ HashKey Chain's Cloudflare-fronted RPC (`testnet.hsk.xyz`) has IPv6/IPv4 routing
 - **Submission Requirements**: GitHub repo with deployed HashKey Chain contract address in README, short demo video, clean git history from hackathon start (Mar 10)
 - **Winners must complete KYC verification**
 
-## Implementation Status (as of 2026-04-11)
+## Implementation Status (as of 2026-04-12)
 - **Phase 0**: COMPLETE — project scaffolding, toolchain, hello-world circuit
 - **Phase 1**: COMPLETE — all sub-circuits + main selective_disclosure circuit (9,993 constraints, 12/12 tests passing), Groth16Verifier.sol auto-generated
 - **Phase 2**: COMPLETE — all smart contracts (Registry, Verifier, RevocationRegistry, KYCSBTAdapter, ZKTLSAdapter, GatedVault, PrivateGovernance, MockKycSBT, MockERC20), 28 contract tests passing
@@ -152,6 +152,7 @@ HashKey Chain's Cloudflare-fronted RPC (`testnet.hsk.xyz`) has IPv6/IPv4 routing
 - **Production Hardening (W1–W7)**: COMPLETE — on-chain revocation enforcement (smoke-tested live), event-indexed tree + BIP39 recovery, Reclaim attestor backend, threshold multisig contract, PrivateGovernance UI, NPM SDK metadata + INTEGRATION.md, revocation dashboard + atomic KYC ingest
 - **Frontend Testing (2026-04-10)**: Full manual testing pass — per-wallet storage isolation, open demo permissions (updateRoot, setKycInfo, revoke), redeployed 7 contracts with correct adapter→registry wiring, on-chain credential registration (CredentialRegistered events), indexer CORS + polling fallback, credential revocation verified live, tree sync race condition fixed (indexer→local merge + prove-page defensive credential re-add)
 - **Documentation (2026-04-11)**: Demo video script (`docs/DEMO_SCRIPT.md`), competitor analysis (`docs/COMPETITOR_ANALYSIS.md`), README trimmed (removed Smart Contract Architecture, Circuit Architecture, Demo Application sections)
+- **Frontend UX Polish (2026-04-12)**: Toast notifications, step indicators, proof substep progress, confirmation dialogs, empty states, CSS-only tooltips, landing page animations. ProofBuilder rewritten with natural-language dropdowns. CredentialCard shows human-readable slot values. VaultDashboard scope replaced with access requirement. User-friendly error messages across all pages. 6 new components: Toast, StepIndicator, ConfirmDialog, ProofContext, EmptyState, Tooltip.
 
 ## Research Findings (2026-04-05)
 - **BN128 precompiles**: Confirmed working on OP Stack L2s. Groth16 on-chain verification is safe on HashKey Chain.

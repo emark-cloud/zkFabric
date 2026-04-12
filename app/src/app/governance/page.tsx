@@ -73,7 +73,7 @@ export default function GovernancePage() {
           exists: p[4],
         });
       }
-      setProposals(list.reverse());
+      setProposals(list.filter((p) => p.id >= 2n).reverse());
     } catch (err) {
       console.error(err);
     } finally {

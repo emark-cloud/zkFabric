@@ -692,7 +692,9 @@ CLAUDE.md                              # Full development guide + chain details 
 | 2026-04-07 | Fixed scope mismatch, invalid merkle root, credential dedup, KYC registration UX, clipboard fix |
 | 2026-04-08 | W1–W7 production hardening complete; redeployed verifier/vault/governance/revocation; live smoke test passed |
 | 2026-04-09 | 9-step live testnet E2E, Playwright frontend testing, README polish, 4 contracts verified on Blockscout |
-| 2026-04-10 | **TODAY** — Full frontend manual testing, 7 contracts redeployed, tree sync fix, project docs (WHAT_IS_ZKFABRIC.md, DEMO_FLOW.md) |
+| 2026-04-10 | Full frontend manual testing, 7 contracts redeployed, tree sync fix, project docs (WHAT_IS_ZKFABRIC.md, DEMO_FLOW.md) |
+| 2026-04-11 | Demo video script, competitor analysis, README trimmed |
+| 2026-04-12 | **TODAY** — Frontend UX polish, humanized technical details (ProofBuilder rewrite, CredentialCard labels, user-friendly errors) |
 | 2026-04-14 | Demo submission opens + project pre-screening |
 | 2026-04-15 | Registration deadline |
 | 2026-04-16 | Official pitch |
