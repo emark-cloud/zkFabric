@@ -24,7 +24,7 @@
 ## SCRIPT
 
 ### [0:00–0:30] HOOK + PROBLEM
-**Screen:** Landing page hero, then quick cut to Blockscout showing a `getKycInfo` call returning full user data.
+**Screen:** Landing page hero ("Prove you qualify without revealing who you are"), then scroll down to "The Problem" section showing the three cards: Binary KYC, Siloed credentials, No standard. Quick cut to Blockscout showing a `getKycInfo` call returning full user data.
 
 > "Every dApp on HashKey Chain can read your KYC status right now — your tier, your ENS name, your verification date, all tied to your wallet address. That means every DeFi protocol, every vault, every governance contract you interact with knows exactly who you are.
 >
@@ -35,7 +35,7 @@
 ---
 
 ### [0:30–0:50] SOLUTION INTRO
-**Screen:** Landing page architecture diagram (the three-layer diagram: credential sources -> zkFabric identity layer -> consuming dApps).
+**Screen:** Scroll to "What dApps See" section on the landing page — the four use case cards showing DeFi lending, Governance, RWA vaults, PayFi, each with "YES. Identity: unknown." Then scroll to "Native to HashKey Chain" section.
 
 > "zkFabric is a privacy layer for HashKey Chain. It turns your KYC — or any verified credential — into a zero-knowledge proof. You prove you qualify without revealing who you are. One SDK call, one verifier contract, and any dApp on HashKey Chain gets compliant identity checks with zero privacy leakage.
 >
@@ -81,7 +81,7 @@
 ---
 
 ### [2:40–3:00] DEMO — GOVERNANCE VOTE (Second Consumer)
-**Screen:** Governance page. Show existing proposal (or create one — empty state shown if none exist). Generate proof with governance scope -> proof auto-fills -> vote YES. Toast confirms vote cast.
+**Screen:** Governance page. Create a new proposal (the page starts with an empty state: "No proposals yet — Create a proposal above to start anonymous governance"). Type a proposal description -> create -> generate proof with governance scope -> paste proof -> vote YES. Toast confirms vote cast.
 
 > "The same credential powers a completely different dApp. This is anonymous governance — I create a proposal, generate a new proof scoped to this specific proposal, and cast my vote.
 >
@@ -97,7 +97,7 @@
 ---
 
 ### [3:20–4:00] ARCHITECTURE RECAP + CTA
-**Screen:** Landing page architecture diagram, then transition to the Deployed Contracts table in README, then the integration code snippet.
+**Screen:** Scroll through the landing page "Under the Hood" section (6 tech items: Groth16, Poseidon hash, 8-slot credentials, Nullifiers, BIP39 recovery, On-chain revocation), then transition to the Deployed Contracts table in README, then the SDK integration code snippet.
 
 > "Let's zoom out. zkFabric has four layers: credential adapters that read HashKey's KYC SBT and off-chain data via zkTLS, a Poseidon-based identity tree with BIP39 recovery, a Groth16 proof engine that runs entirely client-side, and an on-chain verifier with built-in nullifier tracking and revocation.
 >
@@ -123,8 +123,8 @@
 ## Pre-Recording Checklist
 
 - [ ] Clear browser localStorage (fresh start for clean demo)
-- [ ] Start indexer service (`cd indexer && npm run dev`)
-- [ ] Start attestor service (`cd attestor && ATTESTOR_DEV_MODE=1 npm run dev`)
+- [ ] Start indexer service (`cd indexer && REGISTRY_ADDRESS=0x93415BCDbAda30f06274c32fE7b713bF9AB460C1 npm run dev`)
+- [ ] Start attestor service (`cd attestor && ATTESTOR_PRIVATE_KEY=0x... ATTESTOR_DEV_MODE=1 npm run dev`)
 - [ ] Start Next.js dev server (`cd app && npm run dev`)
 - [ ] Have MetaMask connected to HashKey Chain Testnet (Chain 133)
 - [ ] Ensure wallet has testnet HSK for gas
