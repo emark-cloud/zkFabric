@@ -92,7 +92,9 @@
 ### [3:00–3:20] DEMO — REVOCATION
 **Screen:** Revoke page. Show credential list from indexer -> click Revoke -> confirmation dialog appears ("This will permanently revoke...") -> confirm -> toast confirms revocation -> credential shows red "Revoked" badge.
 
-> "What if someone's KYC gets revoked, or a credential is compromised? The issuer clicks Revoke, confirms the action, and from that moment on, every app on the network automatically rejects proofs tied to that credential. No app-by-app updates needed — it's enforced across the entire ecosystem instantly."
+> "What if someone's KYC gets revoked, or a credential is compromised? The issuer clicks Revoke, confirms the action, and from that moment on, every app on the network automatically rejects proofs tied to that credential. No app-by-app updates needed — it's enforced across the entire ecosystem instantly.
+>
+> In production, revocation wouldn't be a single click — we've built a multisig contract that requires multiple authorized signers to approve any revocation or registry change. For the demo, permissions are open so you can see the full flow."
 
 ---
 
@@ -100,6 +102,8 @@
 **Screen:** Scroll through the landing page "Under the Hood" section (6 tech items), then transition to the Deployed Contracts table in README, then the SDK integration code snippet.
 
 > "Under the hood, zkFabric has four layers. First, credential adapters that read from HashKey's KYC system and off-chain sources. Second, a private identity registry with seed-phrase recovery. Third, a proof engine that runs entirely in the user's browser — no trusted server. And fourth, an on-chain verifier with built-in replay protection and revocation.
+>
+> For governance, we've built an M-of-N multisig contract — in production, any admin action like updating the identity tree or revoking a credential requires approval from multiple signers. No single point of control.
 >
 > We've deployed ten contracts on HashKey Chain Testnet, all verified and open-source. Sixty-five automated tests passing. Plus a TypeScript SDK, a live event indexer, and a backend for off-chain attestations.
 >
