@@ -6,6 +6,7 @@
   "description": "zkFabric zkTLS attestor — verifies Reclaim Protocol proofs server-side and signs credential slot packs for on-chain ingestion by ZKTLSAdapter.",
   "scripts": {
     "build": "tsc",
+    "postinstall": "npm run build",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts"
   },
