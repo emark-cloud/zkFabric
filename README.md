@@ -11,6 +11,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
 **Live demo:** [zk-fabric.vercel.app](https://zk-fabric.vercel.app)
+**Demo video:** [Watch on YouTube](https://youtu.be/RnBgjBLLtH8)
 **Contracts:** Deployed on HashKey Chain Testnet (Chain ID: 133) — all 10 core contracts verified on Blockscout
 **Built for:** [HashKey Chain On-Chain Horizon Hackathon 2026](https://dorahacks.io/hackathon/2045) — ZKID Track ($10K Prize Pool)
 **Integration guide:** [`INTEGRATION.md`](./INTEGRATION.md) — ~60 lines of Solidity + ~40 lines of TypeScript to gate any dApp on zkFabric
@@ -431,10 +432,6 @@ zkfabric/
 │       ├── contracts.ts            # Contract ABIs + deployed addresses
 │       └── fabric.ts               # SDK bridge + localStorage persistence
 │
-├── docs/                           # Project documentation
-│   ├── WHAT_IS_ZKFABRIC.md        # Plain-language project explainer
-│   └── DEMO_FLOW.md               # Step-by-step demo walkthrough
-│
 ├── indexer/                        # Event-sourced Merkle tree indexer
 │   └── src/index.ts                # Hono + viem HTTP polling watcher
 │                                   # Replays CredentialRegistered events
@@ -617,8 +614,6 @@ NODE_OPTIONS="--require ./scripts/force-ipv4.cjs" \
 
 ## Documentation
 
-- **[What is zkFabric?](./docs/WHAT_IS_ZKFABRIC.md)** — Plain-language explanation of the system and how it's useful to HashKey Chain
-- **[Demo Flow](./docs/DEMO_FLOW.md)** — Step-by-step walkthrough of every demo step with on-chain details
 - **[Integration Guide](./INTEGRATION.md)** — ~60 lines Solidity + ~40 lines TypeScript to gate any dApp
 
 ## Resources
