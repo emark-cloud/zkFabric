@@ -3,6 +3,8 @@ import { JetBrains_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { NavBar } from "@/components/NavBar";
+import { ToastProvider } from "@/components/Toast";
+import { ProofProvider } from "@/components/ProofContext";
 
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
@@ -33,8 +35,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#050505] text-gray-100 font-body">
         <div className="noise-bg fixed inset-0 pointer-events-none z-[100]" />
         <Providers>
-          <NavBar />
-          <main className="flex-1">{children}</main>
+          <ToastProvider>
+            <ProofProvider>
+              <NavBar />
+              <main className="flex-1">{children}</main>
+            </ProofProvider>
+          </ToastProvider>
         </Providers>
       </body>
     </html>

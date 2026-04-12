@@ -1,6 +1,6 @@
 # zkFabric — Project Status & Comprehensive Overview
 
-**Last Updated:** 2026-04-11 (demo video script, competitor analysis, README trimmed)
+**Last Updated:** 2026-04-12 (humanized technical details — ProofBuilder rewrite, CredentialCard labels, user-friendly errors)
 **Author:** emark-cloud (solo developer)
 **Hackathon:** HashKey Chain On-Chain Horizon Hackathon 2026 — ZKID Track ($10K prize pool)
 
@@ -146,11 +146,14 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 
 ### Phase 4: Frontend ✅
 - Next.js 16 with Turbopack, Tailwind v4, RainbowKit, wagmi
-- Landing page (`/`) — hero, 3-step walkthrough, architecture highlights
-- Issue page (`/issue`) — tabbed KYC SBT + zkTLS credential issuance
-- Prove page (`/prove`) — credential selection, predicate builder, in-browser proof generation
-- Vault page (`/vault`) — ERC-4626 gated vault with proof-based deposit
+- Landing page (`/`) — hero with animated blobs + cursor blink, 3-step walkthrough, architecture highlights
+- Issue page (`/issue`) — tabbed KYC SBT + zkTLS credential issuance with step indicator
+- Prove page (`/prove`) — credential selection, predicate builder, in-browser proof generation with 4-stage substep progress
+- Vault page (`/vault`) — ERC-4626 gated vault with proof auto-fill from Prove page
+- Governance page (`/governance`) — anonymous voting with proof auto-fill and empty state
+- Revoke page (`/revoke`) — issuer dashboard with confirmation dialogs and empty state
 - "Cryptographic Noir" design system — JetBrains Mono + DM Sans, deep blacks, violet/cyan gradients, CSS animations
+- UX polish: toast notifications, step indicators, proof auto-fill context, confirmation dialogs, empty states, CSS-only tooltips
 
 ### Phase 5: Integration & Deployment ✅
 - E2E integration tests (2 passing): full flow + nullifier replay rejection
@@ -201,12 +204,14 @@ The key insight: **separate the credential from the proof.** Credentials come fr
 33. ✅ Demo video script — `docs/DEMO_SCRIPT.md` (4-minute timed script with recording tips and pre-recording checklist)
 34. ✅ Competitor analysis — `docs/COMPETITOR_ANALYSIS.md` (zkFabric vs zk-creditscore vs Trust, scoring matrix, borrowable ideas)
 35. ✅ README trimmed — removed Smart Contract Architecture, Circuit Architecture, and Demo Application sections to reduce length
+36. ✅ Frontend UX polish — Toast notifications, StepIndicator, proof substep progress, ConfirmDialog for revocation, EmptyState components, CSS-only tooltips, landing page blob animations + cursor blink
+37. ✅ Humanized technical details — ProofBuilder rewritten with natural-language dropdowns (KYC level/status/jurisdiction) replacing raw slot/operator/value editor. CredentialCard shows "PREMIUM", "Active", "Hong Kong", readable dates instead of raw BigInts. VaultDashboard scope card replaced with "Access Requirement: KYC PREMIUM+". Error messages user-friendly across vault/governance/revoke. Prove page scope input shows "Gated Vault" label. Identity commitment truncated with helper text. Revoke page description in plain English.
 
 ---
 
 ## Where We Are Now
 
-**Current State: All 5 phases + W1–W7 production hardening complete. Full frontend manual testing pass on 2026-04-10 with 7 contracts redeployed. Demo script + competitor analysis added 2026-04-11. README trimmed for submission.**
+**Current State: All 5 phases + W1–W7 production hardening complete. Full frontend manual testing pass on 2026-04-10 with 7 contracts redeployed. Frontend UX polish + humanized technical details complete (2026-04-12). All developer-facing raw values replaced with user-friendly labels and plain language.**
 
 - All 65 tests passing (12 circuit + 28 contract + 18 SDK + 2 e2e + 5 new)
 - 17 contracts deployed on HashKey Chain Testnet (10 original + 7 redeployed for demo-mode permissions and correct wiring)
@@ -514,7 +519,8 @@ Located in `/home/emark/.claude/plans/`:
 
 | File | Description |
 |---|---|
-| `federated-fluttering-gadget.md` | Most recent — "Cryptographic Noir" frontend overhaul plan (10 files, design system, animation utilities, font choices) |
+| `crispy-purring-wozniak.md` | Most recent — Frontend UX humanization plan (ProofBuilder rewrite, CredentialCard labels, user-friendly errors, VaultDashboard cleanup) |
+| `federated-fluttering-gadget.md` | "Cryptographic Noir" frontend overhaul plan (10 files, design system, animation utilities, font choices) |
 | `compiled-popping-cook.md` | Earlier plan |
 | `linked-juggling-bear.md` | Earlier plan |
 | `parsed-waddling-peach.md` | Earlier plan |

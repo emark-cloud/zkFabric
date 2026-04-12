@@ -35,13 +35,15 @@ export default function Home() {
     <div className="max-w-4xl mx-auto px-4 py-20">
       {/* Hero */}
       <div className="relative text-center mb-20 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[28rem] h-[28rem] bg-violet-600/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 left-1/2 w-[28rem] h-[28rem] bg-violet-600/8 rounded-full blur-3xl pointer-events-none" style={{ animation: "blobRotate 20s linear infinite" }} />
+        <div className="absolute -top-16 left-1/2 w-[22rem] h-[22rem] bg-cyan-600/5 rounded-full blur-3xl pointer-events-none" style={{ animation: "blobRotate 25s linear infinite reverse", marginLeft: "4rem" }} />
         <h1 className="relative text-6xl md:text-7xl font-bold font-heading mb-6 animate-fade-in-up">
           <span className="gradient-text">zk</span>Fabric
         </h1>
         <p className="relative text-xl text-[#71717a] max-w-2xl mx-auto animate-fade-in-up stagger-1">
           Zero-knowledge selective-disclosure identity for HashKey Chain.
-          Prove who you are without revealing what you are.
+          Prove who you are without revealing what you are
+          <span className="inline-block w-[2px] h-5 bg-violet-400 ml-1 align-text-bottom" style={{ animation: "cursorBlink 1s step-end infinite" }} />
         </p>
       </div>
 

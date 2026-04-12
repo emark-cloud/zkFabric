@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
 import { CONTRACTS, REVOCATION_ABI } from "@/lib/contracts";
 import { INDEXER_URL } from "@/lib/fabric";
+import { useToast } from "@/components/Toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
 
 type Leaf = { hash: string; revoked: boolean };
 
@@ -16,7 +19,8 @@ export default function RevokePage() {
   const [indexerError, setIndexerError] = useState("");
   const [rootInput, setRootInput] = useState("");
   const [nullifierInput, setNullifierInput] = useState("");
-  const [status, setStatus] = useState("");
+  const { toast } = useToast();
+  const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
   const { writeContract: revokeHash, data: revokeTx } = useWriteContract();
   const { isSuccess: revokeConfirmed } = useWaitForTransactionReceipt({ hash: revokeTx });
@@ -66,19 +70,26 @@ export default function RevokePage() {
 
   useEffect(() => {
     if (revokeConfirmed || rootConfirmed || nullConfirmed) {
-      setStatus("Revocation confirmed on-chain.");
+      toast("Revocation confirmed on-chain.", "success");
       loadLeaves();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revokeConfirmed, rootConfirmed, nullConfirmed]);
 
   const handleRevokeCredential = (hash: string) => {
-    setStatus(`Revoking credential ${hash.slice(0, 20)}...`);
-    revokeHash({
-      address: CONTRACTS.revocation,
-      abi: REVOCATION_ABI,
-      functionName: "revoke",
-      args: [BigInt(hash)],
+    setConfirmAction({
+      title: "Revoke Credential",
+      message: `This will permanently revoke credential ${hash.slice(0, 20)}... on-chain. Any proofs using this credential will be rejected.`,
+      onConfirm: () => {
+        toast(`Revoking credential ${hash.slice(0, 20)}...`, "info");
+        revokeHash({
+          address: CONTRACTS.revocation,
+          abi: REVOCATION_ABI,
+          functionName: "revoke",
+          args: [BigInt(hash)],
+        });
+        setConfirmAction(null);
+      },
     });
   };
 
@@ -86,15 +97,22 @@ export default function RevokePage() {
     if (!rootInput.trim()) return;
     try {
       const v = BigInt(rootInput.trim());
-      setStatus(`Revoking Merkle root ${rootInput.slice(0, 20)}...`);
-      revokeRoot({
-        address: CONTRACTS.revocation,
-        abi: REVOCATION_ABI,
-        functionName: "revokeRoot",
-        args: [v],
+      setConfirmAction({
+        title: "Revoke Merkle Root",
+        message: `This will invalidate ALL proofs built against this root. This action cannot be undone.`,
+        onConfirm: () => {
+          toast(`Revoking Merkle root ${rootInput.slice(0, 20)}...`, "info");
+          revokeRoot({
+            address: CONTRACTS.revocation,
+            abi: REVOCATION_ABI,
+            functionName: "revokeRoot",
+            args: [v],
+          });
+          setConfirmAction(null);
+        },
       });
     } catch {
-      setStatus("Invalid root (must be decimal or 0x-prefixed hex).");
+      toast("Invalid value. Paste the exact number from your system.", "error");
     }
   };
 
@@ -102,15 +120,22 @@ export default function RevokePage() {
     if (!nullifierInput.trim()) return;
     try {
       const v = BigInt(nullifierInput.trim());
-      setStatus(`Revoking nullifier ${nullifierInput.slice(0, 20)}...`);
-      revokeNullifier({
-        address: CONTRACTS.revocation,
-        abi: REVOCATION_ABI,
-        functionName: "revokeNullifier",
-        args: [v],
+      setConfirmAction({
+        title: "Ban Nullifier",
+        message: `This will permanently ban this nullifier. The identity behind it will never be able to prove in this scope again.`,
+        onConfirm: () => {
+          toast(`Revoking nullifier ${nullifierInput.slice(0, 20)}...`, "info");
+          revokeNullifier({
+            address: CONTRACTS.revocation,
+            abi: REVOCATION_ABI,
+            functionName: "revokeNullifier",
+            args: [v],
+          });
+          setConfirmAction(null);
+        },
       });
     } catch {
-      setStatus("Invalid nullifier.");
+      toast("Invalid value. Paste the exact number from your system.", "error");
     }
   };
 
@@ -128,10 +153,9 @@ export default function RevokePage() {
         Revocation Dashboard
       </h1>
       <p className="text-sm text-[#71717a] mb-8 animate-fade-in-up stagger-1">
-        Issuer-only. Revoke credentials, Merkle roots, or nullifiers on
-        `RevocationRegistry`. `ZKFabricVerifier` rejects any proof that hits a
-        revoked root or nullifier — so revocation is enforced on-chain with
-        no circuit changes.
+        Issuer-only. Revoke credentials, roots, or nullifiers. Revocations
+        take effect immediately — any proof using a revoked item is
+        automatically rejected on-chain.
       </p>
 
       {/* Credential list from indexer */}
@@ -158,9 +182,13 @@ export default function RevokePage() {
         {loading ? (
           <p className="text-sm text-[#3f3f46]">Loading...</p>
         ) : leaves.length === 0 ? (
-          <p className="text-sm text-[#3f3f46]">
-            No credentials indexed yet. Issue one from the Issue page first.
-          </p>
+          <EmptyState
+            icon="📋"
+            title="No credentials indexed"
+            description="Issue a credential first, then it will appear here for revocation management."
+            actionHref="/issue"
+            actionLabel="Go to Issue"
+          />
         ) : (
           <div className="space-y-2">
             {leaves.map((l) => (
@@ -206,7 +234,7 @@ export default function RevokePage() {
             type="text"
             value={rootInput}
             onChange={(e) => setRootInput(e.target.value)}
-            placeholder="Merkle root (decimal or 0x hex)"
+            placeholder="Merkle root value"
             className="w-full bg-[#050505] text-sm rounded px-3 py-2 border border-[#1a1b23] focus:border-violet-500/50 focus:outline-none font-heading"
           />
           <button
@@ -234,7 +262,7 @@ export default function RevokePage() {
             type="text"
             value={nullifierInput}
             onChange={(e) => setNullifierInput(e.target.value)}
-            placeholder="Nullifier hash (decimal or 0x hex)"
+            placeholder="Nullifier value"
             className="w-full bg-[#050505] text-sm rounded px-3 py-2 border border-[#1a1b23] focus:border-violet-500/50 focus:outline-none font-heading"
           />
           <button
@@ -247,10 +275,15 @@ export default function RevokePage() {
         </div>
       </section>
 
-      {status && (
-        <div className="mt-6 bg-[#0a0b0d]/50 border border-[#1a1b23] border-l-2 border-l-violet-500 rounded-lg p-3 text-sm text-[#a1a1aa] animate-slide-down">
-          {status}
-        </div>
+      {confirmAction && (
+        <ConfirmDialog
+          title={confirmAction.title}
+          message={confirmAction.message}
+          confirmLabel="Revoke"
+          variant="danger"
+          onConfirm={confirmAction.onConfirm}
+          onCancel={() => setConfirmAction(null)}
+        />
       )}
     </div>
   );

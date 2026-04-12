@@ -11,7 +11,7 @@ interface Props {
 const CARDS = [
   { label: "Total Vault Assets", border: "border-l-violet-500", color: "text-violet-400" },
   { label: "Your Token Balance", border: "border-l-cyan-500", color: "text-cyan-400" },
-  { label: "Vault Scope", border: "border-l-green-500", color: "" },
+  { label: "Access Requirement", border: "border-l-green-500", color: "" },
 ];
 
 export function VaultDashboard({ userAddress }: Props) {
@@ -33,17 +33,10 @@ export function VaultDashboard({ userAddress }: Props) {
     query: { enabled: contractsDeployed && !!userAddress },
   });
 
-  const { data: vaultScope } = useReadContract({
-    address: CONTRACTS.gatedVault,
-    abi: GATED_VAULT_ABI,
-    functionName: "SCOPE",
-    query: { enabled: contractsDeployed },
-  });
-
   const values = [
     <span key="assets">{totalAssets ? formatEther(totalAssets as bigint) : "0"} <span className="text-sm text-[#71717a]">MOCK</span></span>,
     <span key="balance">{userBalance ? formatEther(userBalance as bigint) : "0"} <span className="text-sm text-[#71717a]">MOCK</span></span>,
-    <span key="scope" className="text-sm font-heading text-[#71717a] break-all">{vaultScope ? (vaultScope as bigint).toString().slice(0, 20) + "..." : "N/A"}</span>,
+    <span key="requirement" className="text-sm font-heading text-green-400">KYC PREMIUM+</span>,
   ];
 
   return (

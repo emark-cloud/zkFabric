@@ -17,6 +17,11 @@ import {
 } from "@/lib/fabric";
 import { CredentialCard } from "@/components/CredentialCard";
 import { ProofBuilder } from "@/components/ProofBuilder";
+import { StepIndicator } from "@/components/StepIndicator";
+import { useToast } from "@/components/Toast";
+import { useProof } from "@/components/ProofContext";
+import { EmptyState } from "@/components/EmptyState";
+import { Tooltip } from "@/components/Tooltip";
 
 export default function ProvePage() {
   const { address, isConnected } = useAccount();
@@ -34,9 +39,12 @@ export default function ProvePage() {
   const [scope, setScope] = useState(SCOPE_PRESETS[0].value);
   const [proofResult, setProofResult] = useState<any>(null);
   const [isProving, setIsProving] = useState(false);
+  const [proofSubstep, setProofSubstep] = useState(0);
   const [proofTime, setProofTime] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+  const { setLatestProof } = useProof();
 
   useEffect(() => {
     setActiveWallet(address);
@@ -83,23 +91,19 @@ export default function ProvePage() {
     }
 
     setIsProving(true);
+    setProofSubstep(0);
     setError("");
     setProofResult(null);
 
     try {
       const merkleProof = tree.getMerkleProof(leafIndex);
-      console.log("[prove] tree root:", tree.getRoot().toString());
-      console.log("[prove] tree size:", tree.size);
-      console.log("[prove] leaf index:", leafIndex);
-      console.log("[prove] credential hash:", selectedCred.credentialHash.toString());
-      console.log("[prove] merkle proof root:", merkleProof.root.toString());
-      console.log("[prove] merkle proof leaf:", merkleProof.leaf.toString());
-      console.log("[prove] merkle proof depth:", merkleProof.siblings.length);
-      console.log("[prove] pathIndices:", JSON.stringify(merkleProof.pathIndices));
-      console.log("[prove] first 3 siblings:", merkleProof.siblings.slice(0, 3).map(String));
+      setProofSubstep(1); // Merkle proof ready
+
       const scopeBigInt = BigInt(scope);
+      setTimeout(() => setProofSubstep(2), 200); // Computing witness
 
       const start = performance.now();
+      setTimeout(() => setProofSubstep(3), 600); // Generating Groth16
       const result = await generateProofInBrowser(
         identity.privateKey,
         selectedCred.slots,
@@ -109,10 +113,18 @@ export default function ProvePage() {
       );
       const elapsed = performance.now() - start;
 
+      setProofSubstep(4); // Done
       setProofTime(Math.round(elapsed));
       setProofResult(result);
+      setLatestProof({
+        proof: result.proof.map(String),
+        publicSignals: result.publicSignals.map(String),
+        scope,
+      });
+      toast("ZK proof generated!", "success");
     } catch (err: any) {
       setError(err.message || "Proof generation failed");
+      toast("Proof generation failed", "error");
     } finally {
       setIsProving(false);
     }
@@ -128,19 +140,26 @@ export default function ProvePage() {
 
   if (!identity || credentials.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center text-[#3f3f46]">
-        No credentials found. Go to{" "}
-        <a href="/issue" className="text-violet-400 hover:underline">
-          Issue
-        </a>{" "}
-        to create one first.
+      <div className="max-w-2xl mx-auto px-4 py-16">
+        <EmptyState
+          icon="🔑"
+          title="No credentials found"
+          description="Issue a credential first to generate proofs."
+          actionHref="/issue"
+          actionLabel="Go to Issue"
+        />
       </div>
     );
   }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-bold font-heading mb-8 animate-fade-in-up">Proof Composer</h1>
+      <h1 className="text-2xl font-bold font-heading mb-6 animate-fade-in-up">Proof Composer</h1>
+
+      <StepIndicator
+        steps={["Select Credential", "Configure Predicates", "Generate Proof"]}
+        currentStep={proofResult ? 3 : selectedCred ? (predicates.length > 0 ? 2 : 1) : 0}
+      />
 
       {/* Step 1: Select credential */}
       <section className="mb-8 animate-fade-in-up stagger-1">
@@ -185,8 +204,8 @@ export default function ProvePage() {
             Generate Proof
           </h2>
           <div className="mb-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-[#71717a]">Scope:</label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <label className="text-sm text-[#71717a]">Target dApp:</label>
               <div className="flex gap-2">
                 {SCOPE_PRESETS.map((preset) => (
                   <button
@@ -203,13 +222,20 @@ export default function ProvePage() {
                 ))}
               </div>
             </div>
-            <input
-              type="text"
-              value={scope}
-              onChange={(e) => setScope(e.target.value)}
-              placeholder="dApp scope (number)"
-              className="bg-[#050505] text-sm rounded px-3 py-2 border border-[#1a1b23] focus:border-violet-500/50 focus:outline-none font-heading w-full transition-colors text-[#71717a]"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                placeholder="dApp identifier"
+                className="bg-[#050505] text-sm rounded px-3 py-2 border border-[#1a1b23] focus:border-violet-500/50 focus:outline-none font-heading w-full transition-colors text-[#71717a] pr-28"
+              />
+              {SCOPE_PRESETS.slice(0, -1).some((p) => p.value === scope) && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-heading uppercase tracking-widest px-2 py-0.5 bg-green-500/10 text-green-400 rounded-full border border-green-500/20">
+                  {SCOPE_PRESETS.find((p) => p.value === scope)?.label}
+                </span>
+              )}
+            </div>
           </div>
 
           <button
@@ -221,8 +247,31 @@ export default function ProvePage() {
           </button>
 
           {isProving && (
-            <div className="mt-3 text-sm text-[#71717a] animate-shimmer rounded-lg p-3">
-              Computing Groth16 proof in browser — this may take a few seconds...
+            <div className="mt-4 bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4 space-y-2">
+              {[
+                "Preparing Merkle proof",
+                "Computing witness",
+                "Generating Groth16 proof",
+                "Finalizing",
+              ].map((step, i) => {
+                const stepNum = i + 1;
+                const isDone = proofSubstep > stepNum;
+                const isActive = proofSubstep === stepNum || (stepNum === 3 && proofSubstep >= 3 && proofSubstep < 4);
+                return (
+                  <div key={step} className="flex items-center gap-3 text-sm">
+                    {isDone ? (
+                      <span className="text-green-400 text-xs">&#10003;</span>
+                    ) : isActive ? (
+                      <span className="w-3 h-3 border-2 border-violet-400 border-t-transparent rounded-full animate-spin inline-block" />
+                    ) : (
+                      <span className="w-3 h-3 rounded-full border border-[#1a1b23] inline-block" />
+                    )}
+                    <span className={isDone ? "text-[#71717a]" : isActive ? "text-[#e4e4e7]" : "text-[#3f3f46]"}>
+                      {step}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
@@ -261,13 +310,17 @@ export default function ProvePage() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#71717a]">Nullifier Hash</span>
+                <Tooltip term="A unique pseudonym for this identity + scope pair. Prevents double-use but can't be linked to your wallet.">
+                  <span className="text-[#71717a]">Nullifier Hash</span>
+                </Tooltip>
                 <span className="font-heading text-xs text-violet-400">
                   {proofResult.publicSignals[2].toString().slice(0, 20)}...
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#71717a]">Merkle Root</span>
+                <Tooltip term="The root of the credential tree. Proves your credential is registered without revealing which one.">
+                  <span className="text-[#71717a]">Merkle Root</span>
+                </Tooltip>
                 <span className="font-heading text-xs text-[#71717a]">
                   {proofResult.publicSignals[1].toString().slice(0, 20)}...
                 </span>
@@ -276,7 +329,7 @@ export default function ProvePage() {
 
             <details className="text-xs">
               <summary className="cursor-pointer text-[#3f3f46] hover:text-[#71717a] font-heading uppercase tracking-wider">
-                Raw proof JSON
+                Proof data (advanced)
               </summary>
               <pre className="mt-2 bg-[#050505] border border-[#1a1b23] rounded-lg p-3 overflow-x-auto text-[#71717a] max-h-64 font-heading text-[11px]">
                 {JSON.stringify(

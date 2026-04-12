@@ -44,7 +44,7 @@
 ---
 
 ### [0:50–1:30] DEMO — IDENTITY + CREDENTIAL ISSUANCE
-**Screen:** Issue page. Show wallet connect -> Create Identity -> mnemonic modal -> select KYC tier -> Mint Credential. Cut between steps to keep it tight (skip tx confirmations).
+**Screen:** Issue page. Step indicator at top shows "Identity → KYC Source → Mint". Show wallet connect -> Create Identity -> mnemonic modal -> select KYC tier -> Mint Credential. Toast notifications confirm each action. Cut between steps to keep it tight (skip tx confirmations).
 
 > "First, I connect my wallet and create a zkFabric identity. This generates a 12-word recovery phrase — just like a wallet seed — that I can use to restore my identity on any device. The identity commitment is a Poseidon hash. No one can reverse it to find my private key.
 >
@@ -52,16 +52,16 @@
 >
 > When I mint, the SDK packs my KYC data into 8 private credential slots — tier, status, jurisdiction, timestamp — hashes them with Poseidon, and registers that hash on-chain. The actual data never leaves my browser. The on-chain registry just records that a valid credential exists."
 
-**Screen highlight:** Show the CredentialCard appearing with type "KYC_SBT" and the hash.
+**Screen highlight:** Show the CredentialCard appearing — it displays "KYC Credential" with human-readable fields: KYC Level = PREMIUM, Status = Active, Jurisdiction = Hong Kong, issued date. No raw numbers.
 
 ---
 
 ### [1:30–2:10] DEMO — PROOF GENERATION
-**Screen:** Prove page. Select credential -> configure predicates -> generate proof. Show the timer counting ~3 seconds.
+**Screen:** Prove page. Step indicator shows "Select Credential → Configure Predicates → Generate Proof". Select credential -> configure predicates -> generate proof. Show the 4-stage substep progress (Preparing Merkle proof → Computing witness → Generating Groth16 → Finalizing) with spinners and checkmarks. Show the timer counting ~3 seconds.
 
-> "Now the interesting part. I go to the Proof Composer and select my credential. I choose what to prove — in this case, 'KYC tier is at least 3' — that's PREMIUM or higher. I don't reveal my exact tier, my jurisdiction, my name, or anything else. Just: 'I qualify.'
+> "Now the interesting part. I go to the Proof Composer and select my credential. Instead of configuring raw circuit parameters, I just pick from plain-language options — 'Minimum KYC Level: PREMIUM+', 'Account Status: Active only', 'Jurisdiction: Any'. The app translates these into zero-knowledge predicates under the hood. I don't reveal my exact tier, my name, or anything else. Just: 'I qualify.'
 >
-> I set the scope to 'Gated Vault' — this is a unique identifier for the dApp I'm proving to. The scope also generates a nullifier — a one-time pseudonym that prevents me from using this proof twice, but can't be linked back to my wallet.
+> I select 'Gated Vault' as the target dApp — you can see the green label confirming it. This also generates a nullifier — a one-time pseudonym that prevents me from using this proof twice, but can't be linked back to my wallet.
 >
 > I hit Generate, and in about three seconds, a Groth16 zero-knowledge proof is computed right here in my browser. No server, no backend. The output is a small JSON blob — 8 proof elements and 52 public signals — that any smart contract can verify on-chain for about 200K gas."
 
@@ -70,9 +70,9 @@
 ---
 
 ### [2:10–2:40] DEMO — VAULT DEPOSIT (DeFi Consumer)
-**Screen:** Vault page. Show token balance -> mint test tokens -> approve -> paste proof -> deposit.
+**Screen:** Vault page. Show dashboard with "Access Requirement: KYC PREMIUM+" card. Show token balance -> mint test tokens -> approve -> paste proof -> deposit. Toast notifications confirm each step.
 
-> "Here's where a dApp uses the proof. This is a standard ERC-4626 tokenized vault — the kind any DeFi protocol on HashKey would use. But deposits require a ZK proof.
+> "Here's where a dApp uses the proof. This is a standard ERC-4626 tokenized vault — the kind any DeFi protocol on HashKey would use. But deposits require a ZK proof. Notice the dashboard shows the access requirement in plain language: 'KYC PREMIUM+' — not a raw scope number.
 >
 > I paste my proof, enter a deposit amount, and submit. The vault contract calls *one function*: `zkFabric.verifyAndRecord`. That single call checks the Groth16 proof, validates the Merkle root, records the nullifier, and checks revocation status. If it passes, the deposit goes through. The vault knows I'm KYC-verified at PREMIUM tier — but it has *no idea* who I am.
 >
@@ -81,7 +81,7 @@
 ---
 
 ### [2:40–3:00] DEMO — GOVERNANCE VOTE (Second Consumer)
-**Screen:** Governance page. Show existing proposal -> generate proof with governance scope -> vote YES.
+**Screen:** Governance page. Show existing proposal (or create one — empty state shown if none exist). Generate proof with governance scope -> proof auto-fills -> vote YES. Toast confirms vote cast.
 
 > "The same credential powers a completely different dApp. This is anonymous governance — I create a proposal, generate a new proof scoped to this specific proposal, and cast my vote.
 >
@@ -90,9 +90,9 @@
 ---
 
 ### [3:00–3:20] DEMO — REVOCATION
-**Screen:** Revoke page. Show credential list -> click Revoke -> show the credential marked as revoked.
+**Screen:** Revoke page. Description in plain language (no contract names). Show credential list from indexer -> click Revoke -> confirmation dialog appears ("This will permanently revoke...") -> confirm -> toast confirms revocation -> credential shows red "Revoked" badge.
 
-> "Finally, revocation. If a user's KYC is revoked — or a credential is compromised — the issuer calls `revoke` on the RevocationRegistry. From that moment, every dApp that calls `verifyAndRecord` automatically rejects proofs built against that credential. No circuit changes, no per-dApp updates. It's enforced at the protocol layer, across the entire ecosystem, instantly."
+> "Finally, revocation. If a user's KYC is revoked — or a credential is compromised — the issuer clicks Revoke. A confirmation dialog prevents accidental revocations. From that moment, every dApp that calls `verifyAndRecord` automatically rejects proofs built against that credential. No circuit changes, no per-dApp updates. It's enforced at the protocol layer, across the entire ecosystem, instantly."
 
 ---
 

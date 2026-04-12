@@ -91,6 +91,77 @@
 .stagger-4 { animation-delay: 0.4s; }
 .stagger-5 { animation-delay: 0.5s; }
 
+/* ── Toast ── */
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(100%); }
+}
+.animate-toast-in { animation: toastIn 0.3s ease-out forwards; }
+.animate-toast-out { animation: toastOut 0.25s ease-in forwards; }
+
+/* ── Spinner ── */
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin { animation: spin 0.8s linear infinite; }
+
+/* ── Blob Rotate ── */
+
+@keyframes blobRotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ── Cursor Blink ── */
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Tooltip ── */
+
+.tooltip-trigger {
+  position: relative;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--noir-text-dim);
+  cursor: help;
+}
+.tooltip-trigger .tooltip-content {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--noir-surface);
+  border: 1px solid var(--noir-border-active);
+  color: var(--noir-text);
+  font-size: 12px;
+  line-height: 1.4;
+  font-family: var(--font-body);
+  z-index: 300;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+.tooltip-trigger:hover .tooltip-content {
+  visibility: visible;
+  opacity: 1;
+}
+
 /* ── Visual Utilities ── */
 
 .glow-border {

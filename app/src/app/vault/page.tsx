@@ -5,12 +5,13 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagm
 import { parseEther } from "viem";
 import { CONTRACTS, GATED_VAULT_ABI, MOCK_ERC20_ABI } from "@/lib/contracts";
 import { VaultDashboard } from "@/components/VaultDashboard";
+import { useToast } from "@/components/Toast";
 
 export default function VaultPage() {
   const { address, isConnected } = useAccount();
   const [depositAmount, setDepositAmount] = useState("100");
   const [proofJson, setProofJson] = useState("");
-  const [status, setStatus] = useState("");
+  const { toast } = useToast();
 
   const contractsDeployed =
     CONTRACTS.gatedVault !== "0x0000000000000000000000000000000000000000";
@@ -26,7 +27,7 @@ export default function VaultPage() {
 
   const handleMintTokens = () => {
     if (!address) return;
-    setStatus("Minting test tokens...");
+    toast("Minting test tokens...", "info");
     mint({
       address: CONTRACTS.mockERC20,
       abi: MOCK_ERC20_ABI,
@@ -36,7 +37,7 @@ export default function VaultPage() {
   };
 
   const handleApprove = () => {
-    setStatus("Approving vault to spend tokens...");
+    toast("Approving vault...", "info");
     approve({
       address: CONTRACTS.mockERC20,
       abi: MOCK_ERC20_ABI,
@@ -47,7 +48,7 @@ export default function VaultPage() {
 
   const handleDeposit = () => {
     if (!proofJson) {
-      setStatus("Paste your proof JSON first (from the Prove page).");
+      toast("Paste your proof JSON first (from the Prove page).", "error");
       return;
     }
 
@@ -56,16 +57,12 @@ export default function VaultPage() {
       const proof = parsed.proof.map(BigInt) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint];
       const publicSignals = parsed.publicSignals.map(BigInt) as bigint[];
 
-      if (proof.length !== 8) {
-        setStatus("Invalid proof: expected 8 elements");
-        return;
-      }
-      if (publicSignals.length !== 52) {
-        setStatus("Invalid public signals: expected 52 elements");
+      if (proof.length !== 8 || publicSignals.length !== 52) {
+        toast("Invalid proof format. Copy the complete proof from the Prove page.", "error");
         return;
       }
 
-      setStatus("Depositing with ZK proof...");
+      toast("Depositing with ZK proof...", "info");
       deposit({
         address: CONTRACTS.gatedVault,
         abi: GATED_VAULT_ABI,
@@ -73,7 +70,7 @@ export default function VaultPage() {
         args: [parseEther(depositAmount), address!, proof, publicSignals],
       });
     } catch (err: any) {
-      setStatus("Invalid proof JSON: " + err.message);
+      toast("Could not read the proof. Make sure you copied it correctly from the Prove page.", "error");
     }
   };
 
@@ -148,7 +145,7 @@ export default function VaultPage() {
 
             <div>
               <label className="text-sm text-[#71717a] block mb-1">
-                Proof JSON (paste from Prove page)
+                Proof JSON
               </label>
               <textarea
                 value={proofJson}
@@ -191,12 +188,6 @@ export default function VaultPage() {
         </section>
       </div>
 
-      {/* Status */}
-      {status && (
-        <div className="mt-6 bg-[#0a0b0d]/50 border border-[#1a1b23] border-l-2 border-l-violet-500 rounded-lg p-3 text-sm text-[#a1a1aa] animate-slide-down">
-          {status}
-        </div>
-      )}
     </div>
   );
 }

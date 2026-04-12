@@ -28,16 +28,10 @@ import {
   type ZKTLSAttestation,
 } from "@/lib/fabric";
 import { CredentialCard } from "@/components/CredentialCard";
+import { StepIndicator } from "@/components/StepIndicator";
+import { useToast } from "@/components/Toast";
 
 type Tab = "kyc" | "zktls";
-
-function StepBadge({ n }: { n: number }) {
-  return (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-violet-600/20 text-violet-400 text-xs font-heading mr-2">
-      {n}
-    </span>
-  );
-}
 
 export default function IssuePage() {
   const { address, isConnected } = useAccount();
@@ -46,7 +40,7 @@ export default function IssuePage() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [tree, setTree] = useState<CredentialTree | null>(null);
   const [leafIndices, setLeafIndices] = useState<Map<string, number>>(new Map());
-  const [status, setStatus] = useState("");
+  const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   // Backup modal — non-null when a fresh mnemonic was just generated and the
   // user must acknowledge they've written it down.
@@ -151,9 +145,9 @@ export default function IssuePage() {
     setHasMnemonic(true);
     if (isNew) {
       setPendingMnemonic(mnemonic);
-      setStatus("Identity created — back up your recovery phrase before continuing.");
+      toast("Identity created — back up your recovery phrase.", "success");
     } else {
-      setStatus("Identity loaded. Commitment: " + id.commitment.toString().slice(0, 20) + "...");
+      toast("Identity loaded.", "info");
     }
   }, []);
 
@@ -164,9 +158,9 @@ export default function IssuePage() {
       setHasMnemonic(true);
       setShowRestore(false);
       setRestoreInput("");
-      setStatus("Identity restored from recovery phrase.");
+      toast("Identity restored from recovery phrase.", "success");
     } catch (err: any) {
-      setStatus("Restore failed: " + err.message);
+      toast("Restore failed: " + err.message, "error");
     }
   }, [restoreInput]);
 
@@ -215,7 +209,7 @@ export default function IssuePage() {
   const handleIssueCredential = useCallback(async () => {
     if (!identity || !kycInfo || !tree) return;
     setIsProcessing(true);
-    setStatus("Packing credential data...");
+    toast("Packing credential data...", "info");
 
     try {
       const slots = packKycSlots(kycInfo, 344n, 1n);
@@ -240,9 +234,9 @@ export default function IssuePage() {
         args: [identity.commitment, credentialHash],
       });
 
-      setStatus("Credential created! Confirm the transactions (registerCredential + updateRoot)...");
+      toast("Credential created! Confirm transactions...", "success");
     } catch (err: any) {
-      setStatus("Error: " + err.message);
+      toast("Error: " + err.message, "error");
     } finally {
       setIsProcessing(false);
     }
@@ -251,7 +245,7 @@ export default function IssuePage() {
   const handleIssueZktls = useCallback(async () => {
     if (!identity || !tree || !address) return;
     setIsProcessing(true);
-    setStatus("Requesting signed attestation from zkFabric attestor...");
+    toast("Requesting signed attestation...", "info");
 
     try {
       // POST to the backend attestor. In production the body would include a
@@ -282,7 +276,7 @@ export default function IssuePage() {
       const slots = slotStrs.map((s) => BigInt(s));
       const credentialHash = computeCredentialHash(identity.commitment, slots);
 
-      setStatus("Submitting signed attestation on-chain...");
+      toast("Submitting attestation on-chain...", "info");
       submitZktlsAttestation({
         address: CONTRACTS.zktlsAdapter,
         abi: ZKTLS_ADAPTER_ABI,
@@ -299,11 +293,9 @@ export default function IssuePage() {
         createdAt: Date.now(),
       };
       persistCredential(credential, tree);
-      setStatus(
-        "zkTLS attestation signed off-chain and submitted. Confirm both transactions (submitAttestation + updateRoot) to finish."
-      );
+      toast("zkTLS attestation submitted. Confirm transactions...", "success");
     } catch (err: any) {
-      setStatus("Error: " + err.message);
+      toast("Error: " + err.message, "error");
     } finally {
       setIsProcessing(false);
     }
@@ -312,7 +304,7 @@ export default function IssuePage() {
   useEffect(() => {
     if (ingestConfirmed && credentials.length > 0) {
       const latest = credentials[credentials.length - 1];
-      setStatus("On-chain identity registered! Now registering credential hash...");
+      toast("Identity registered! Registering credential hash...", "info");
       registerHash({
         address: CONTRACTS.kycAdapter,
         abi: KYC_ADAPTER_ABI,
@@ -323,14 +315,14 @@ export default function IssuePage() {
   }, [ingestConfirmed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (registerConfirmed) setStatus("Credential fully registered on-chain!");
+    if (registerConfirmed) toast("Credential fully registered on-chain!", "success");
   }, [registerConfirmed]);
 
   useEffect(() => {
     if (zktlsSubmitConfirmed && credentials.length > 0) {
       const latest = credentials[credentials.length - 1];
       if (latest.type === CredentialType.ZKTLS) {
-        setStatus("Attestation confirmed! Now registering credential hash...");
+        toast("Attestation confirmed! Registering credential hash...", "info");
         registerZktlsHash({
           address: CONTRACTS.zktlsAdapter,
           abi: ZKTLS_ADAPTER_ABI,
@@ -342,11 +334,11 @@ export default function IssuePage() {
   }, [zktlsSubmitConfirmed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (zktlsRegisterConfirmed) setStatus("zkTLS credential registered on-chain!");
+    if (zktlsRegisterConfirmed) toast("zkTLS credential registered on-chain!", "success");
   }, [zktlsRegisterConfirmed]);
 
   useEffect(() => {
-    if (rootUpdated) setStatus("Merkle root updated on-chain! You can now generate proofs on the Prove page.");
+    if (rootUpdated) toast("Merkle root updated! Ready to generate proofs.", "success");
   }, [rootUpdated]);
 
   if (!isConnected) {
@@ -359,19 +351,27 @@ export default function IssuePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-2xl font-bold font-heading mb-8 animate-fade-in-up">Issue Credential</h1>
+      <h1 className="text-2xl font-bold font-heading mb-6 animate-fade-in-up">Issue Credential</h1>
+
+      <StepIndicator
+        steps={["Identity", "KYC Source", "Mint"]}
+        currentStep={credentials.length > 0 ? 3 : identity ? 1 : 0}
+      />
 
       {/* Step 1: Identity */}
       <section className="mb-8 animate-fade-in-up stagger-1">
         <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
-          <StepBadge n={1} />Identity
+          <span className="text-violet-400 mr-2 font-heading">01</span>Identity
         </h2>
         {identity ? (
           <div className="bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4 space-y-3">
             <div>
-              <p className="text-sm text-[#71717a]">Identity commitment:</p>
-              <p className="font-heading text-sm text-violet-400 break-all">
-                {identity.commitment.toString()}
+              <p className="text-sm text-[#71717a]">Identity fingerprint:</p>
+              <p className="font-heading text-sm text-violet-400">
+                {identity.commitment.toString().slice(0, 12)}...{identity.commitment.toString().slice(-6)}
+              </p>
+              <p className="text-[10px] text-[#3f3f46] mt-1">
+                Your private identity key. Use your recovery phrase to restore it on another device.
               </p>
             </div>
             {hasMnemonic && (
@@ -495,7 +495,7 @@ export default function IssuePage() {
         <>
           <section className="mb-8">
             <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
-              <StepBadge n={2} />KYC Status
+              <span className="text-violet-400 mr-2 font-heading">02</span>KYC Status
             </h2>
             {kycInfo && isApproved ? (
               <div className="bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4 space-y-2 text-sm">
@@ -536,7 +536,7 @@ export default function IssuePage() {
                           functionName: "setKycInfo",
                           args: [address, `${address.slice(0, 6)}.hsk`, level, 1],
                         });
-                        setStatus(`Setting KYC to ${label}...`);
+                        toast(`Setting KYC to ${label}...`, "info");
                       }}
                       className={`px-3 py-1.5 text-xs font-heading uppercase tracking-wider rounded-lg border transition-all duration-200 ${
                         level === 3
@@ -561,7 +561,7 @@ export default function IssuePage() {
 
           <section className="mb-8">
             <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
-              <StepBadge n={3} />Mint Credential
+              <span className="text-violet-400 mr-2 font-heading">03</span>Mint Credential
             </h2>
             {identity ? (
               <button
@@ -587,7 +587,7 @@ export default function IssuePage() {
                       };
                       const currentTree = tree || new CredentialTree();
                       persistCredential(credential, currentTree);
-                      setStatus("Demo credential created! (PREMIUM tier, HK jurisdiction)");
+                      toast("Demo credential created! (PREMIUM tier, HK jurisdiction)", "success");
                     } else {
                       handleIssueCredential();
                     }
@@ -610,7 +610,7 @@ export default function IssuePage() {
         <>
           <section className="mb-8">
             <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
-              <StepBadge n={2} />Attestation Source
+              <span className="text-violet-400 mr-2 font-heading">02</span>Attestation Source
             </h2>
             <div className="bg-[#0a0b0d] border border-[#1a1b23] rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-3">
@@ -654,7 +654,7 @@ export default function IssuePage() {
 
           <section className="mb-8">
             <h2 className="text-lg font-semibold mb-3 text-[#a1a1aa]">
-              <StepBadge n={3} />Mint Credential
+              <span className="text-violet-400 mr-2 font-heading">03</span>Mint Credential
             </h2>
             {identity ? (
               <button
@@ -669,13 +669,6 @@ export default function IssuePage() {
             )}
           </section>
         </>
-      )}
-
-      {/* Status */}
-      {status && (
-        <div className="mb-8 bg-[#0a0b0d]/50 border border-[#1a1b23] border-l-2 border-l-violet-500 rounded-lg p-3 text-sm text-[#a1a1aa] animate-slide-down">
-          {status}
-        </div>
       )}
 
       {/* Credentials */}

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
 import { keccak256, encodePacked } from "viem";
 import { CONTRACTS, GOVERNANCE_ABI } from "@/lib/contracts";
+import { useToast } from "@/components/Toast";
+import { EmptyState } from "@/components/EmptyState";
 
 const BN128_FIELD_PRIME =
   21888242871839275222246405745257275088548364400416034343698204186575808495617n;
@@ -36,8 +38,8 @@ export default function GovernancePage() {
   const [selectedId, setSelectedId] = useState<bigint | null>(null);
   const [proofJson, setProofJson] = useState("");
   const [choice, setChoice] = useState<0 | 1>(1);
-  const [status, setStatus] = useState("");
   const [copiedScope, setCopiedScope] = useState(false);
+  const { toast } = useToast();
 
   const { writeContract: createProposal, data: createTx } = useWriteContract();
   const { isSuccess: createConfirmed } = useWaitForTransactionReceipt({ hash: createTx });
@@ -92,7 +94,7 @@ export default function GovernancePage() {
   const handleCreate = () => {
     if (!newDescription.trim()) return;
     const durationSeconds = BigInt(Math.max(1, Number(newDurationHours))) * 3600n;
-    setStatus("Submitting proposal...");
+    toast("Submitting proposal...", "info");
     createProposal({
       address: CONTRACTS.governance,
       abi: GOVERNANCE_ABI,
@@ -103,26 +105,22 @@ export default function GovernancePage() {
 
   const handleVote = () => {
     if (selectedId === null) {
-      setStatus("Select a proposal first.");
+      toast("Select a proposal first.", "error");
       return;
     }
     if (!proofJson) {
-      setStatus("Paste a proof JSON from the Prove page (use this proposal's scope).");
+      toast("Paste a proof JSON from the Prove page (use this proposal's scope).", "error");
       return;
     }
     try {
       const parsed = JSON.parse(proofJson);
       const proof = parsed.proof.map(BigInt) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint];
       const publicSignals = parsed.publicSignals.map(BigInt) as bigint[];
-      if (proof.length !== 8) {
-        setStatus("Invalid proof: expected 8 elements");
+      if (proof.length !== 8 || publicSignals.length !== 52) {
+        toast("Invalid proof format. Copy the complete proof from the Prove page.", "error");
         return;
       }
-      if (publicSignals.length !== 52) {
-        setStatus("Invalid public signals: expected 52 elements");
-        return;
-      }
-      setStatus(`Casting ${choice === 1 ? "YES" : "NO"} vote on proposal #${selectedId}...`);
+      toast(`Casting ${choice === 1 ? "YES" : "NO"} vote on proposal #${selectedId}...`, "info");
       castVote({
         address: CONTRACTS.governance,
         abi: GOVERNANCE_ABI,
@@ -130,7 +128,7 @@ export default function GovernancePage() {
         args: [selectedId, choice, proof, publicSignals],
       });
     } catch (err: any) {
-      setStatus("Invalid proof JSON: " + err.message);
+      toast("Could not read the proof. Make sure you copied it correctly from the Prove page.", "error");
     }
   };
 
@@ -196,7 +194,11 @@ export default function GovernancePage() {
         {loading ? (
           <p className="text-sm text-[#3f3f46]">Loading...</p>
         ) : proposals.length === 0 ? (
-          <p className="text-sm text-[#3f3f46]">No proposals yet. Create one above.</p>
+          <EmptyState
+            icon="🗳️"
+            title="No proposals yet"
+            description="Create a proposal above to start anonymous governance."
+          />
         ) : (
           <div className="space-y-3">
             {proposals.map((p) => {
@@ -336,11 +338,6 @@ export default function GovernancePage() {
         </section>
       )}
 
-      {status && (
-        <div className="mt-6 bg-[#0a0b0d]/50 border border-[#1a1b23] border-l-2 border-l-violet-500 rounded-lg p-3 text-sm text-[#a1a1aa] animate-slide-down">
-          {status}
-        </div>
-      )}
     </div>
   );
 }
