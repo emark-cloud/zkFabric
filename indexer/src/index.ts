@@ -253,6 +253,12 @@ async function pollLoop() {
 }
 
 async function main() {
+  // Start HTTP server immediately so hosting platforms (Railway, Render)
+  // see a healthy service while backfill runs in the background.
+  serve({ fetch: app.fetch, port: PORT }, (info) => {
+    console.log(`[indexer] HTTP listening on http://0.0.0.0:${info.port}`);
+  });
+
   const head = await httpClient.getBlockNumber();
   await backfill(head);
 
@@ -264,10 +270,6 @@ async function main() {
   // Always run polling as a fallback (handles WS failures on free-tier RPCs)
   pollLoop();
   console.log(`[indexer] polling every ${POLL_INTERVAL / 1000}s as fallback`);
-
-  serve({ fetch: app.fetch, port: PORT }, (info) => {
-    console.log(`[indexer] HTTP listening on http://0.0.0.0:${info.port}`);
-  });
 }
 
 main().catch((err) => {
