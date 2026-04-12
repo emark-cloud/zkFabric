@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Allow importing from ../sdk/src
@@ -18,6 +19,11 @@ const nextConfig: NextConfig = {
         worker_threads: false,
       };
     }
+    // Resolve @sdk/* path alias for Vercel builds
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@sdk": path.resolve(__dirname, "../sdk/src"),
+    };
     config.experiments = { ...config.experiments, asyncWebAssembly: true };
     return config;
   },

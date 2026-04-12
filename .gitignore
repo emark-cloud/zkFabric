@@ -16,10 +16,11 @@ circuits/build/*.ptau
 !circuits/build/verification_key.json
 !circuits/build/hello_world_vkey.json
 
-# Frontend build + large circuit artifacts served from public
+# Frontend build
 app/.next/
-app/public/circuits/*.wasm
-app/public/circuits/*.zkey
+
+# Circuit artifacts in public/ are tracked (needed for Vercel deployment)
+# They are ~9.5MB total (wasm + zkey) and required for client-side proving
 
 # SDK build output
 sdk/dist/

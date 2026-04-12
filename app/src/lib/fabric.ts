@@ -5,11 +5,11 @@ import {
   computeIdentityCommitment,
   generateMnemonic12,
   identityFromMnemonic,
-} from "../../../sdk/src/identity";
-import { CredentialTree } from "../../../sdk/src/tree";
-import { buildCircuitInput } from "../../../sdk/src/prover";
-import { packKycSlots, type KycInfo } from "../../../sdk/src/adapters/KYCSBTIngester";
-import { packZktlsSlots, type ZKTLSAttestation } from "../../../sdk/src/adapters/ZKTLSIngester";
+} from "@sdk/identity";
+import { CredentialTree } from "@sdk/tree";
+import { buildCircuitInput } from "@sdk/prover";
+import { packKycSlots, type KycInfo } from "@sdk/adapters/KYCSBTIngester";
+import { packZktlsSlots, type ZKTLSAttestation } from "@sdk/adapters/ZKTLSIngester";
 import {
   type Identity,
   type Credential,
@@ -19,7 +19,7 @@ import {
   PredicateType,
   NUM_SLOTS,
   SET_SIZE,
-} from "../../../sdk/src/types";
+} from "@sdk/types";
 
 // Re-export for convenience
 export {
